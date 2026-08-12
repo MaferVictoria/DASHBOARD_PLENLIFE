@@ -1,0 +1,100 @@
+# Plenlife — Panel de Marketing
+
+Dashboard interno (Next.js) que junta Meta Ads, Google Ads (PMax) y Shopify en
+un solo lugar, pensado para desplegarse en Vercel desde este mismo repo.
+
+Ahora mismo corre con **datos de ejemplo (mock)** para que puedas navegar la
+estructura completa de inmediato. Los conectores reales están dejados listos
+en `lib/connectors/` — sustituir el mock ahí es el único paso pendiente para
+que muestre datos reales.
+
+## Cómo correrlo localmente
+
+```bash
+npm install
+npm run dev
+```
+
+Abre http://localhost:3000 — vas a ver las 4 pestañas ya navegables con datos
+de ejemplo.
+
+## Estructura de carpetas
+
+```
+app/
+  page.js              → Pestaña "Resumen general" (Meta + Google + Shopify)
+  meta/page.js          → Pestaña "Meta"
+  google/page.js        → Pestaña "Google"
+  shopify/page.js        → Pestaña "Shopify"
+  api/meta/route.js      → Endpoint que sirve métricas de Meta
+  api/google/route.js    → Endpoint que sirve métricas de Google Ads
+  api/shopify/route.js   → Endpoint que sirve métricas de Shopify
+  layout.js / globals.css → Layout raíz, fuentes y estilos base
+
+components/
+  DashboardShell.js      → Arma cada pestaña: fetch de datos + qué secciones mostrar
+  TabNav.js               → Navegación entre las 4 pestañas
+  DateRangeSelector.js    → 7 / 14 / 30 días + rango personalizado
+  KpiCard.js / KpiGrid.js → Tarjetas de KPIs (cambian según la pestaña)
+  MonthlySpendChart.js    → Desglose mensual (Ene → mes actual)
+  PlatformComparisonTable.js → Meta / Google / Shopify lado a lado (no atribución)
+  TopCitiesTable.js       → Top ciudades por mes
+  TopProductsTable.js     → Top productos por mes
+  FunnelBreakdown.js      → Visitas → carrito → pago → compra
+
+lib/
+  connectors/meta.js       → TODO: reemplazar mock por la llamada real a Meta Marketing API
+  connectors/googleAds.js  → TODO: reemplazar mock por la llamada real a Google Ads API (PMax)
+  connectors/shopify.js    → TODO: reemplazar mock por la llamada real a Shopify Admin API
+  mockData.js              → Generador de datos de ejemplo (borrar cuando ya no se use)
+  metrics.js               → Cálculo de MER, ROAS blended, CAC blended
+  dateRanges.js             → Lógica de presets de fecha
+  format.js                 → Formato de moneda/números en es-MX
+```
+
+## Qué se ve en cada pestaña
+
+| Sección | Resumen general | Meta | Google | Shopify |
+|---|---|---|---|---|
+| KPIs | ✅ (blended) | ✅ | ✅ | ✅ |
+| Desglose mensual | ✅ (Meta + Google) | ✅ | ✅ | ✅ (ventas netas) |
+| Tabla Plataformas vs. Shopify | ✅ | — | — | — |
+| Top ciudades / productos por mes | ✅ | — | — | ✅ |
+| Funnel (visitas → compra) | ✅ | — | — | ✅ |
+
+**Nota de una decisión que tomé:** la tabla comparativa, el top de
+ciudades/productos y el funnel viven en "Resumen general" y "Shopify" porque
+son datos que solo existen del lado de Shopify (o son, por definición, un
+cruce entre plataformas). No tendría sentido repetirlos en las pestañas de
+Meta o Google, que no tienen esa información. Si prefieres verlos en las 4
+pestañas de todos modos, es un cambio pequeño en `DashboardShell.js`
+(las banderas `showComparison` / `showCitiesProducts` / `showFunnel`).
+
+## Conectar datos reales
+
+Cada archivo en `lib/connectors/` tiene un comentario `TODO` con el endpoint
+exacto, los campos a mapear, y qué credenciales necesita. En resumen:
+
+1. Copia `.env.example` a `.env.local` y llena las credenciales de Meta,
+   Google Ads y Shopify.
+2. En Vercel, agrega esas mismas variables en **Project Settings → Environment
+   Variables**.
+3. En cada archivo de `lib/connectors/`, reemplaza la función mock por la
+   llamada real (las funciones ya tienen la firma correcta — `getMetaTotals(start, end)`,
+   etc. — así que el resto de la app no necesita cambios).
+4. Borra `lib/mockData.js` cuando ya nada lo use.
+
+## Desplegar en Vercel
+
+1. Sube este contenido a tu repo (`git init`, `git add .`, `git commit`, `git push`).
+2. En vercel.com, "Add New Project" → importa el repo → Vercel detecta Next.js
+   automáticamente, no hace falta configurar nada.
+3. Agrega las variables de entorno antes del primer deploy con datos reales.
+
+## Próximos pasos sugeridos
+
+- Conectar las 3 APIs reales (ver sección anterior).
+- Decidir si el rango de fechas "personalizado" también debe filtrar el top
+  de ciudades/productos (hoy siempre muestra los últimos 3 meses) o solo los
+  KPIs — depende de qué tan seguido se va a usar un rango que no sea mensual.
+- Autenticación/acceso al dashboard si se va a "subir a la web" públicamente.
