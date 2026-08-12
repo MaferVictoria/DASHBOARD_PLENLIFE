@@ -18,9 +18,32 @@ const EMPTY_GOOGLE = { spend: 0, conversions: 0, conversionValue: 0, roas: 0, cp
 const EMPTY_SHOPIFY = { totalSales: 0, netSales: 0, orders: 0, newCustomers: 0, returningCustomers: 0 };
 
 async function fetchJSON(url) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Failed to fetch ${url}`);
-  return res.json();
+  try {
+    const res = await fetch(url);
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return { error: json.error || `Error ${res.status} al consultar ${url}` };
+    }
+    return json;
+  } catch (err) {
+    return { error: err.message || `No se pudo conectar con ${url}` };
+  }
+}
+
+const PLATFORM_NAMES = { meta: 'Meta Ads', google: 'Google Ads', shopify: 'Shopify' };
+
+function ErrorBanner({ errors }) {
+  const entries = Object.entries(errors).filter(([, msg]) => msg);
+  if (entries.length === 0) return null;
+  return (
+    <div className="mb-6 space-y-1 border border-fall/30 bg-fall/5 px-4 py-3">
+      {entries.map(([key, msg]) => (
+        <p key={key} className="font-mono text-xs text-fall">
+          <span className="font-semibold">{PLATFORM_NAMES[key]}:</span> {msg}
+        </p>
+      ))}
+    </div>
+  );
 }
 
 // platform: 'all' | 'meta' | 'google' | 'shopify'
@@ -38,6 +61,7 @@ export default function DashboardShell({ platform, title, subtitle }) {
   const [topCitiesByMonth, setTopCitiesByMonth] = useState([]);
   const [topProductsByMonth, setTopProductsByMonth] = useState([]);
   const [funnel, setFunnel] = useState({ pageViews: 0, addToCart: 0, checkoutInfo: 0, purchases: 0 });
+  const [errors, setErrors] = useState({ meta: null, google: null, shopify: null });
 
   useEffect(() => {
     let cancelled = false;
@@ -55,22 +79,47 @@ export default function DashboardShell({ platform, title, subtitle }) {
     ])
       .then(([metaRes, googleRes, shopifyRes]) => {
         if (cancelled) return;
+        const nextErrors = { meta: null, google: null, shopify: null };
+
         if (metaRes) {
-          setMeta(metaRes.totals);
-          setMetaMonthly(metaRes.monthly);
+          if (metaRes.error) {
+            nextErrors.meta = metaRes.error;
+            setMeta(EMPTY_META);
+            setMetaMonthly([]);
+          } else {
+            setMeta(metaRes.totals);
+            setMetaMonthly(metaRes.monthly);
+          }
         }
         if (googleRes) {
-          setGoogle(googleRes.totals);
-          setGoogleMonthly(googleRes.monthly);
+          if (googleRes.error) {
+            nextErrors.google = googleRes.error;
+            setGoogle(EMPTY_GOOGLE);
+            setGoogleMonthly([]);
+          } else {
+            setGoogle(googleRes.totals);
+            setGoogleMonthly(googleRes.monthly);
+          }
         }
         if (shopifyRes) {
-          setShopify(shopifyRes.totals);
-          setShopifyMonthly(shopifyRes.monthly);
-          setSalesByProduct(shopifyRes.salesByProduct);
-          setTopCitiesByMonth(shopifyRes.topCitiesByMonth);
-          setTopProductsByMonth(shopifyRes.topProductsByMonth);
-          setFunnel(shopifyRes.funnel);
+          if (shopifyRes.error) {
+            nextErrors.shopify = shopifyRes.error;
+            setShopify(EMPTY_SHOPIFY);
+            setShopifyMonthly([]);
+            setSalesByProduct([]);
+            setTopCitiesByMonth([]);
+            setTopProductsByMonth([]);
+          } else {
+            setShopify(shopifyRes.totals);
+            setShopifyMonthly(shopifyRes.monthly);
+            setSalesByProduct(shopifyRes.salesByProduct);
+            setTopCitiesByMonth(shopifyRes.topCitiesByMonth);
+            setTopProductsByMonth(shopifyRes.topProductsByMonth);
+            setFunnel(shopifyRes.funnel);
+          }
         }
+
+        setErrors(nextErrors);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -120,6 +169,8 @@ export default function DashboardShell({ platform, title, subtitle }) {
       </header>
 
       <main className={loading ? 'opacity-50 transition-opacity' : 'transition-opacity'}>
+        <ErrorBanner errors={errors} />
+
         <SectionHeader eyebrow="KPIs" title="Indicadores clave" note={`${range.start} → ${range.end}`} />
         <KpiGrid platform={platform} meta={meta} google={google} shopify={shopify} blended={blended} />
 

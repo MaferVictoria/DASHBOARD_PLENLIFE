@@ -70,6 +70,30 @@ Meta o Google, que no tienen esa información. Si prefieres verlos en las 4
 pestañas de todos modos, es un cambio pequeño en `DashboardShell.js`
 (las banderas `showComparison` / `showCitiesProducts` / `showFunnel`).
 
+## Estado de las conexiones
+
+- **Meta Ads → conectado de verdad.** `lib/connectors/meta.js` llama a la Marketing API
+  (`/insights`) usando `META_ACCESS_TOKEN` y `META_AD_ACCOUNT_ID` (ya están en tus
+  variables de entorno de Vercel). Si por alguna razón esas variables no están
+  presentes (por ejemplo corriendo `npm run dev` en tu laptop sin `.env.local`),
+  cae automáticamente a datos de ejemplo para que puedas seguir trabajando —
+  pero en Vercel, con las variables ya puestas, va a jalar datos reales.
+- **Google Ads y Shopify → siguen en mock**, listos para el mismo tratamiento
+  cuando tengas las credenciales.
+
+### Qué pasa si Meta falla (token vencido, cuenta equivocada, rate limit, etc.)
+
+A propósito, **no** se esconde el error mostrando números falsos. Si la llamada
+a Meta falla, el endpoint `/api/meta` regresa un error explícito y vas a ver un
+aviso rojo arriba del dashboard con el mensaje real de la API (por ejemplo,
+"Meta Insights API: Error validating access token"). Esto es intencional: en un
+dashboard que informa decisiones de negocio, es peor ver un ROAS que se ve bien
+pero es inventado, que ver un aviso de "esto no cargó".
+
+Si quieres confirmar que la conexión real está jalando bien una vez desplegado,
+revisa los logs de la función en Vercel (Deployments → función `/api/meta`) —
+ahí vas a ver cualquier `console.error` si algo falla.
+
 ## Conectar datos reales
 
 Cada archivo en `lib/connectors/` tiene un comentario `TODO` con el endpoint
