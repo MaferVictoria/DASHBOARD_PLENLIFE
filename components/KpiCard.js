@@ -1,8 +1,9 @@
 // KPI card styled like a nutrition-facts ledger: thick rule, small-caps
-// label, one bold number, thin rule, optional sublabel. It's a deliberate
-// nod to the client's own product category rather than a generic stat tile.
+// label, one bold number, thin rule, then the period-over-period change.
 
-export default function KpiCard({ label, value, sublabel }) {
+export default function KpiCard({ label, value, changeText, direction }) {
+  const colorClass = direction === 'up' ? 'text-rise' : direction === 'down' ? 'text-fall' : 'text-ink/45';
+
   return (
     <div className="flex flex-col bg-panel px-4 py-3">
       <div className="rule-thick border-t-2 border-ink pt-1.5">
@@ -12,7 +13,7 @@ export default function KpiCard({ label, value, sublabel }) {
         {value}
       </p>
       <div className="rule-thin mt-2 border-t pt-1">
-        <p className="font-body text-[10px] text-ink/45">{sublabel || '\u00A0'}</p>
+        <p className={`font-body text-[10px] ${colorClass}`}>{changeText || '\u00A0'}</p>
       </div>
     </div>
   );

@@ -10,7 +10,7 @@ import TopCitiesTable from './TopCitiesTable';
 import TopProductsTable from './TopProductsTable';
 import FunnelBreakdown from './FunnelBreakdown';
 import SectionHeader from './SectionHeader';
-import { defaultRange } from '@/lib/dateRanges';
+import { defaultRange, getPreviousRange } from '@/lib/dateRanges';
 import { computeBlended } from '@/lib/metrics';
 
 const EMPTY_META = { spend: 0, purchases: 0, purchaseValue: 0, roas: 0, cpa: 0 };
@@ -61,6 +61,9 @@ export default function DashboardShell({ platform, title, subtitle }) {
   const [topProductsByMonth, setTopProductsByMonth] = useState([]);
   const [funnel, setFunnel] = useState({ pageViews: 0, addToCart: 0, checkoutInfo: 0, purchases: 0 });
   const [errors, setErrors] = useState({ meta: null, google: null, shopify: null });
+  const [previousMeta, setPreviousMeta] = useState(null);
+  const [previousGoogle, setPreviousGoogle] = useState(null);
+  const [previousShopify, setPreviousShopify] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -71,12 +74,20 @@ export default function DashboardShell({ platform, title, subtitle }) {
     const needsGoogle = platform === 'all' || platform === 'google';
     const needsShopify = platform === 'all' || platform === 'shopify';
 
+    // "Todo el histórico" has no meaningful previous period to compare
+    // against — getPreviousRange returns null and we simply skip these.
+    const previousRange = getPreviousRange(range);
+    const prevQs = previousRange ? `start=${previousRange.start}&end=${previousRange.end}&totalsOnly=1` : null;
+
     Promise.all([
       needsMeta ? fetchJSON(`/api/meta?${qs}`) : null,
       needsGoogle ? fetchJSON(`/api/google?${qs}`) : null,
       needsShopify ? fetchJSON(`/api/shopify?${qs}`) : null,
+      needsMeta && prevQs ? fetchJSON(`/api/meta?${prevQs}`) : null,
+      needsGoogle && prevQs ? fetchJSON(`/api/google?${prevQs}`) : null,
+      needsShopify && prevQs ? fetchJSON(`/api/shopify?${prevQs}`) : null,
     ])
-      .then(([metaRes, googleRes, shopifyRes]) => {
+      .then(([metaRes, googleRes, shopifyRes, prevMetaRes, prevGoogleRes, prevShopifyRes]) => {
         if (cancelled) return;
         const nextErrors = { meta: null, google: null, shopify: null };
 
@@ -116,6 +127,15 @@ export default function DashboardShell({ platform, title, subtitle }) {
           }
         }
 
+        // A failed comparison fetch should only hide the % change, never
+        // block the current-period KPIs — so these don't feed the red banner.
+        setPreviousMeta(prevMetaRes && !prevMetaRes.error ? prevMetaRes.totals : null);
+        setPreviousGoogle(prevGoogleRes && !prevGoogleRes.error ? prevGoogleRes.totals : null);
+        setPreviousShopify(prevShopifyRes && !prevShopifyRes.error ? prevShopifyRes.totals : null);
+        if (prevMetaRes?.error) console.warn('[comparación] Meta (periodo anterior):', prevMetaRes.error);
+        if (prevGoogleRes?.error) console.warn('[comparación] Google (periodo anterior):', prevGoogleRes.error);
+        if (prevShopifyRes?.error) console.warn('[comparación] Shopify (periodo anterior):', prevShopifyRes.error);
+
         setErrors(nextErrors);
       })
       .finally(() => {
@@ -128,6 +148,10 @@ export default function DashboardShell({ platform, title, subtitle }) {
   }, [platform, range.start, range.end]);
 
   const blended = computeBlended(meta, google, shopify);
+  const previousBlended =
+    previousMeta && previousGoogle && previousShopify
+      ? computeBlended(previousMeta, previousGoogle, previousShopify)
+      : null;
 
   const showComparison = platform === 'all';
   const showCitiesProducts = platform === 'all' || platform === 'shopify';
@@ -169,7 +193,17 @@ export default function DashboardShell({ platform, title, subtitle }) {
         <ErrorBanner errors={errors} />
 
         <SectionHeader eyebrow="KPIs" title="Indicadores clave" note={`${range.start} → ${range.end}`} />
-        <KpiGrid platform={platform} meta={meta} google={google} shopify={shopify} blended={blended} />
+        <KpiGrid
+          platform={platform}
+          meta={meta}
+          google={google}
+          shopify={shopify}
+          blended={blended}
+          previousMeta={previousMeta}
+          previousGoogle={previousGoogle}
+          previousShopify={previousShopify}
+          previousBlended={previousBlended}
+        />
 
         <SectionHeader eyebrow="Tendencia" title="Desglose mensual (Ene → hoy)" />
         {monthlyChart}

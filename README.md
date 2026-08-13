@@ -90,40 +90,71 @@ El dashboard usa la paleta oficial de Plenlife, definida como tokens en `tailwin
 ## Estado de las conexiones
 
 - **Meta Ads → conectado de verdad.** `lib/connectors/meta.js` llama a la Marketing API
-  (`/insights`) usando `META_ACCESS_TOKEN` y `META_AD_ACCOUNT_ID` (ya están en tus
-  variables de entorno de Vercel). Si por alguna razón esas variables no están
-  presentes (por ejemplo corriendo `npm run dev` en tu laptop sin `.env.local`),
-  cae automáticamente a datos de ejemplo para que puedas seguir trabajando —
-  pero en Vercel, con las variables ya puestas, va a jalar datos reales.
-- **Google Ads y Shopify → siguen en mock**, listos para el mismo tratamiento
-  cuando tengas las credenciales.
+  (`/insights`) usando `META_ACCESS_TOKEN` y `META_AD_ACCOUNT_ID`.
+- **Shopify → conectado de verdad.** `lib/connectors/shopify.js` llama a la Admin API
+  (GraphQL) usando `SHOPIFY_STORE_DOMAIN` y `SHOPIFY_ADMIN_API_TOKEN`. Lee los pedidos
+  reales de la tienda para ventas, pedidos, clientes, top ciudades y top productos.
+  El **funnel** (visitas → carrito → pago → compra) sigue en mock — la API de Órdenes
+  de Shopify no tiene esos datos de sesión; se necesita la API de Analytics de Shopify
+  o GA4 (ver el comentario al inicio de `lib/connectors/shopify.js`).
+- **Google Ads → sigue en mock**, listo para el mismo tratamiento cuando tengas las credenciales.
 
-### Qué pasa si Meta falla (token vencido, cuenta equivocada, rate limit, etc.)
+Si por alguna razón las variables de entorno no están presentes (por ejemplo corriendo
+`npm run dev` en tu laptop sin `.env.local`), cada conector cae automáticamente a datos
+de ejemplo para que puedas seguir trabajando — pero en Vercel, con las variables ya
+puestas, jala datos reales.
 
-A propósito, **no** se esconde el error mostrando números falsos. Si la llamada
-a Meta falla, el endpoint `/api/meta` regresa un error explícito y vas a ver un
-aviso rojo arriba del dashboard con el mensaje real de la API (por ejemplo,
-"Meta Insights API: Error validating access token"). Esto es intencional: en un
-dashboard que informa decisiones de negocio, es peor ver un ROAS que se ve bien
-pero es inventado, que ver un aviso de "esto no cargó".
+### ⚠️ Cosas a vigilar con el conector real de Shopify
 
-Si quieres confirmar que la conexión real está jalando bien una vez desplegado,
-revisa los logs de la función en Vercel (Deployments → función `/api/meta`) —
-ahí vas a ver cualquier `console.error` si algo falla.
+1. **Aproximaciones, no exactitud perfecta.** "Nuevos vs. recurrentes" usa el conteo
+   de pedidos de por vida del cliente (`numberOfOrders`) al momento de la consulta —
+   es la aproximación estándar en este tipo de integración, pero no es idéntica al
+   reporte nativo de Shopify (Analytics → "Primera compra vs. recurrente"), que sí
+   sabe con certeza cuál fue el primer pedido de cada cliente. "Ventas totales/netas"
+   se aproximan de `currentTotalPriceSet`/`currentSubtotalPriceSet` — deberían
+   coincidir muy de cerca con los reportes de Shopify, pero no están garantizados a
+   coincidir al peso. Te recomiendo comparar contra el Shopify Analytics nativo la
+   primera semana para calibrar confianza.
+2. **"Todo el histórico" puede tronar en el plan Hobby de Vercel.** Las funciones
+   serverless en Hobby tienen un límite de ~10 segundos. Si Plenlife tiene muchos
+   pedidos acumulados, agregar años de historial en una sola consulta puede
+   exceder ese límite (verás un timeout, o el error explícito de "demasiadas
+   órdenes" que puse como límite de seguridad en el código). Si eso pasa:
+   acota el rango, sube a Vercel Pro, o (la solución correcta a mayor escala)
+   cambia esto a un job que precalcula y guarda los resultados en vez de
+   calcularlos en cada carga de página.
+3. **No lo he podido probar contra la tienda real** (mi entorno no tiene acceso
+   a la red de Shopify) — el código está escrito correctamente según la
+   documentación de la GraphQL Admin API, pero revisa los logs de la función en
+   Vercel (Deployments → función `/api/shopify`) las primeras veces que lo uses
+   para confirmar que todo jala bien.
 
-## Conectar datos reales
+## Filtro de fecha y comparación de periodos
 
-Cada archivo en `lib/connectors/` tiene un comentario `TODO` con el endpoint
-exacto, los campos a mapear, y qué credenciales necesita. En resumen:
+El selector de fecha ahora es un dropdown (como el de Shopify) con: Hoy, Ayer,
+Últimos 7/14/30 días, Mes pasado, Mes actual, Todo el histórico, y Personalizado.
 
-1. Copia `.env.example` a `.env.local` y llena las credenciales de Meta,
-   Google Ads y Shopify.
-2. En Vercel, agrega esas mismas variables en **Project Settings → Environment
-   Variables**.
-3. En cada archivo de `lib/connectors/`, reemplaza la función mock por la
-   llamada real (las funciones ya tienen la firma correcta — `getMetaTotals(start, end)`,
-   etc. — así que el resto de la app no necesita cambios).
-4. Borra `lib/mockData.js` cuando ya nada lo use.
+**Todas las tarjetas de KPI muestran el cambio vs. el periodo anterior** (absoluto
+y %). La comparación es contra un periodo de la misma duración inmediatamente
+anterior al seleccionado (el mismo criterio que usan GA4 y la mayoría de
+plataformas de ads) — por ejemplo, "Últimos 7 días" se compara contra los 7 días
+antes de esos. Para "Mes actual" (que normalmente está incompleto), se compara
+contra el mismo número de días de tapa del mes pasado, no contra el mes pasado
+completo, para que sea una comparación justa.
+
+**"Todo el histórico" no muestra comparación** — no existe un "periodo anterior"
+al histórico completo, así que las tarjetas muestran "sin periodo previo" en vez
+de un porcentaje inventado.
+
+Para CPA y CAC (donde bajar es bueno), el color se invierte: un aumento se ve en
+rojo y una baja en verde — al revés que en gasto/ventas/pedidos, donde subir es
+lo que normalmente se busca.
+
+## Conectar datos reales (Google Ads pendiente)
+
+`lib/connectors/googleAds.js` tiene el comentario `TODO` con el endpoint exacto,
+los campos a mapear, y qué credenciales necesita — mismo patrón que ya se usó
+para Meta y Shopify.
 
 ## Desplegar en Vercel
 
@@ -134,8 +165,8 @@ exacto, los campos a mapear, y qué credenciales necesita. En resumen:
 
 ## Próximos pasos sugeridos
 
-- Conectar las 3 APIs reales (ver sección anterior).
-- Decidir si el rango de fechas "personalizado" también debe filtrar el top
-  de ciudades/productos (hoy siempre muestra los últimos 3 meses) o solo los
-  KPIs — depende de qué tan seguido se va a usar un rango que no sea mensual.
+- Conectar Google Ads (Meta y Shopify ya están conectados de verdad).
+- Vigilar los logs de Vercel las primeras veces que uses "Todo el histórico" en Shopify.
+- Decidir si el top de ciudades/productos debe respetar el rango de fecha
+  seleccionado (hoy siempre muestra los últimos 3 meses, sin importar el filtro).
 - Autenticación/acceso al dashboard si se va a "subir a la web" públicamente.
