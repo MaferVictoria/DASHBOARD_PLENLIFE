@@ -21,10 +21,10 @@ export default function FunnelBreakdown({ funnel }) {
           return (
             <div key={step.key}>
               <div className="mb-1 flex items-baseline justify-between">
-                <span className="font-mono text-[11px] uppercase tracking-wide text-ink/60">
+                <span className="font-body text-[11px] uppercase tracking-wide text-ink/60">
                   {step.label}
                 </span>
-                <span className="font-mono text-sm tabular-nums text-ink">
+                <span className="font-body text-sm tabular-nums text-ink">
                   {formatNumber(step.value)}
                   {i > 0 && (
                     <span className="ml-2 text-xs text-ink/40">{formatPercent(dropoff)} vs. anterior</span>
@@ -33,8 +33,8 @@ export default function FunnelBreakdown({ funnel }) {
               </div>
               <div className="h-3 w-full bg-line">
                 <div
-                  className="h-3 bg-forest"
-                  style={{ width: `${widthPct}%`, backgroundColor: i === steps.length - 1 ? '#C98A2C' : '#173C32' }}
+                  className="h-3"
+                  style={{ width: `${widthPct}%`, backgroundColor: i === steps.length - 1 ? '#009dde' : '#086eb6' }}
                 />
               </div>
             </div>

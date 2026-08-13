@@ -1,22 +1,10 @@
-import { Space_Grotesk, Inter, IBM_Plex_Mono } from 'next/font/google';
+import { Poppins } from 'next/font/google';
 import './globals.css';
 
-const display = Space_Grotesk({
+const poppins = Poppins({
   subsets: ['latin'],
-  weight: ['500', '700'],
-  variable: '--font-display',
-});
-
-const body = Inter({
-  subsets: ['latin'],
-  weight: ['400', '500', '600'],
-  variable: '--font-body',
-});
-
-const mono = IBM_Plex_Mono({
-  subsets: ['latin'],
-  weight: ['400', '500', '600'],
-  variable: '--font-mono',
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-poppins',
 });
 
 export const metadata = {
@@ -27,7 +15,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="es">
-      <body className={`${display.variable} ${body.variable} ${mono.variable} font-body bg-paper text-ink antialiased`}>
+      <body className={`${poppins.variable} font-body bg-paper text-ink antialiased`}>
         {children}
       </body>
     </html>

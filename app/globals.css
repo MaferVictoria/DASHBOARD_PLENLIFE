@@ -3,12 +3,12 @@
 @tailwind utilities;
 
 html {
-  background-color: #F6F4EF;
+  background-color: #EEF5FA;
 }
 
 ::selection {
-  background-color: #C98A2C;
-  color: #16241E;
+  background-color: #009dde;
+  color: #FFFFFF;
 }
 
 .tabular-nums {
@@ -18,12 +18,12 @@ html {
 /* Ledger-style rule used to bracket KPI cards and section headers */
 .rule-thick {
   border-top-width: 2px;
-  border-color: #16241E;
+  border-color: #0B2A45;
 }
 
 .rule-thin {
   border-top-width: 1px;
-  border-color: #E2DED2;
+  border-color: #D9E6EF;
 }
 
 @media (prefers-reduced-motion: reduce) {

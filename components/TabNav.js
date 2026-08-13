@@ -23,11 +23,11 @@ export default function TabNav() {
             href={tab.href}
             className={[
               'relative px-4 py-3 font-display text-sm font-medium transition-colors',
-              active ? 'text-forest' : 'text-ink/50 hover:text-ink',
+              active ? 'text-brand' : 'text-ink/50 hover:text-ink',
             ].join(' ')}
           >
             {tab.label}
-            {active && <span className="absolute inset-x-3 -bottom-px h-[2px] bg-gold" />}
+            {active && <span className="absolute inset-x-3 -bottom-px h-[2px] bg-brand-bright" />}
           </Link>
         );
       })}

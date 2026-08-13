@@ -38,7 +38,7 @@ function ErrorBanner({ errors }) {
   return (
     <div className="mb-6 space-y-1 border border-fall/30 bg-fall/5 px-4 py-3">
       {entries.map(([key, msg]) => (
-        <p key={key} className="font-mono text-xs text-fall">
+        <p key={key} className="font-body text-xs text-fall">
           <span className="font-semibold">{PLATFORM_NAMES[key]}:</span> {msg}
         </p>
       ))}
@@ -57,7 +57,6 @@ export default function DashboardShell({ platform, title, subtitle }) {
   const [googleMonthly, setGoogleMonthly] = useState([]);
   const [shopify, setShopify] = useState(EMPTY_SHOPIFY);
   const [shopifyMonthly, setShopifyMonthly] = useState([]);
-  const [salesByProduct, setSalesByProduct] = useState([]);
   const [topCitiesByMonth, setTopCitiesByMonth] = useState([]);
   const [topProductsByMonth, setTopProductsByMonth] = useState([]);
   const [funnel, setFunnel] = useState({ pageViews: 0, addToCart: 0, checkoutInfo: 0, purchases: 0 });
@@ -106,13 +105,11 @@ export default function DashboardShell({ platform, title, subtitle }) {
             nextErrors.shopify = shopifyRes.error;
             setShopify(EMPTY_SHOPIFY);
             setShopifyMonthly([]);
-            setSalesByProduct([]);
             setTopCitiesByMonth([]);
             setTopProductsByMonth([]);
           } else {
             setShopify(shopifyRes.totals);
             setShopifyMonthly(shopifyRes.monthly);
-            setSalesByProduct(shopifyRes.salesByProduct);
             setTopCitiesByMonth(shopifyRes.topCitiesByMonth);
             setTopProductsByMonth(shopifyRes.topProductsByMonth);
             setFunnel(shopifyRes.funnel);
@@ -138,16 +135,16 @@ export default function DashboardShell({ platform, title, subtitle }) {
 
   let monthlyChart = null;
   if (platform === 'meta') {
-    monthlyChart = <MonthlySpendChart data={metaMonthly} label="Gasto por mes — Meta Ads" barColor="#173C32" />;
+    monthlyChart = <MonthlySpendChart data={metaMonthly} label="Gasto por mes — Meta Ads" barColor="#086eb6" />;
   } else if (platform === 'google') {
-    monthlyChart = <MonthlySpendChart data={googleMonthly} label="Gasto por mes — Google Ads (PMax)" barColor="#245645" />;
+    monthlyChart = <MonthlySpendChart data={googleMonthly} label="Gasto por mes — Google Ads (PMax)" barColor="#009dde" />;
   } else if (platform === 'shopify') {
-    monthlyChart = <MonthlySpendChart data={shopifyMonthly} label="Ventas netas por mes — Shopify" barColor="#C98A2C" />;
+    monthlyChart = <MonthlySpendChart data={shopifyMonthly} label="Ventas netas por mes — Shopify" barColor="#0B2A45" />;
   } else {
     monthlyChart = (
       <div className="grid gap-px bg-line sm:grid-cols-2">
-        <MonthlySpendChart data={metaMonthly} label="Gasto por mes — Meta Ads" barColor="#173C32" />
-        <MonthlySpendChart data={googleMonthly} label="Gasto por mes — Google Ads (PMax)" barColor="#245645" />
+        <MonthlySpendChart data={metaMonthly} label="Gasto por mes — Meta Ads" barColor="#086eb6" />
+        <MonthlySpendChart data={googleMonthly} label="Gasto por mes — Google Ads (PMax)" barColor="#009dde" />
       </div>
     );
   }
@@ -157,7 +154,7 @@ export default function DashboardShell({ platform, title, subtitle }) {
       <header className="mb-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-gold">Plenlife</p>
+            <p className="font-body text-[11px] uppercase tracking-[0.18em] text-brand-bright">Plenlife</p>
             <h1 className="font-display text-2xl font-semibold text-ink sm:text-3xl">{title}</h1>
             {subtitle && <p className="mt-1 text-sm text-ink/60">{subtitle}</p>}
           </div>

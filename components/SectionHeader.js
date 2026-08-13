@@ -4,7 +4,7 @@ export default function SectionHeader({ eyebrow, title, note }) {
       <div className="flex items-baseline justify-between rule-thick pt-2">
         <div>
           {eyebrow && (
-            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-forest/70">
+            <p className="font-body text-[11px] uppercase tracking-[0.18em] text-brand/70">
               {eyebrow}
             </p>
           )}

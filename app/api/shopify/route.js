@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import {
   getShopifyTotals,
   getShopifyMonthly,
-  getShopifySalesByProduct,
   getShopifyTopCitiesByMonth,
   getShopifyTopProductsByMonth,
   getShopifyFunnel,
@@ -17,11 +16,10 @@ export async function GET(request) {
     return NextResponse.json({ error: 'Missing start/end query params' }, { status: 400 });
   }
 
-  const [totals, monthly, salesByProduct, topCitiesByMonth, topProductsByMonth, funnel] =
+  const [totals, monthly, topCitiesByMonth, topProductsByMonth, funnel] =
     await Promise.all([
       getShopifyTotals(start, end),
       getShopifyMonthly(),
-      getShopifySalesByProduct(start, end),
       getShopifyTopCitiesByMonth(),
       getShopifyTopProductsByMonth(),
       getShopifyFunnel(start, end),
@@ -31,7 +29,6 @@ export async function GET(request) {
     range: { start, end },
     totals,
     monthly,
-    salesByProduct,
     topCitiesByMonth,
     topProductsByMonth,
     funnel,

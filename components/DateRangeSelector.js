@@ -26,10 +26,10 @@ export default function DateRangeSelector({ range, onChange }) {
           key={preset.id}
           onClick={() => selectPreset(preset)}
           className={[
-            'rounded-full border px-3 py-1.5 font-mono text-xs uppercase tracking-wide transition-colors',
+            'rounded-full border px-3 py-1.5 font-body text-xs uppercase tracking-wide transition-colors',
             range.id === preset.id
-              ? 'border-forest bg-forest text-paper'
-              : 'border-line bg-panel text-ink/70 hover:border-forest/50',
+              ? 'border-brand bg-brand text-white'
+              : 'border-line bg-panel text-ink/70 hover:border-brand/50',
           ].join(' ')}
         >
           {preset.label}
@@ -40,10 +40,10 @@ export default function DateRangeSelector({ range, onChange }) {
         <button
           onClick={() => setCustomOpen((v) => !v)}
           className={[
-            'rounded-full border px-3 py-1.5 font-mono text-xs uppercase tracking-wide transition-colors',
+            'rounded-full border px-3 py-1.5 font-body text-xs uppercase tracking-wide transition-colors',
             range.id === 'custom'
-              ? 'border-forest bg-forest text-paper'
-              : 'border-line bg-panel text-ink/70 hover:border-forest/50',
+              ? 'border-brand bg-brand text-white'
+              : 'border-line bg-panel text-ink/70 hover:border-brand/50',
           ].join(' ')}
         >
           {range.id === 'custom' ? `${range.start} → ${range.end}` : 'Personalizado'}
@@ -51,7 +51,7 @@ export default function DateRangeSelector({ range, onChange }) {
 
         {customOpen && (
           <div className="absolute right-0 z-10 mt-2 w-64 rounded-lg border border-line bg-panel p-3 shadow-lg">
-            <label className="mb-1 block font-mono text-[10px] uppercase tracking-wide text-ink/50">
+            <label className="mb-1 block font-body text-[10px] uppercase tracking-wide text-ink/50">
               Desde
             </label>
             <input
@@ -60,7 +60,7 @@ export default function DateRangeSelector({ range, onChange }) {
               onChange={(e) => setDraftStart(e.target.value)}
               className="mb-2 w-full rounded border border-line px-2 py-1 text-sm"
             />
-            <label className="mb-1 block font-mono text-[10px] uppercase tracking-wide text-ink/50">
+            <label className="mb-1 block font-body text-[10px] uppercase tracking-wide text-ink/50">
               Hasta
             </label>
             <input
@@ -71,7 +71,7 @@ export default function DateRangeSelector({ range, onChange }) {
             />
             <button
               onClick={applyCustom}
-              className="w-full rounded bg-forest py-1.5 text-sm font-medium text-paper hover:bg-forest-light"
+              className="w-full rounded bg-brand py-1.5 text-sm font-medium text-white hover:bg-brand-light"
             >
               Aplicar
             </button>

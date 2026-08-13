@@ -70,6 +70,23 @@ Meta o Google, que no tienen esa información. Si prefieres verlos en las 4
 pestañas de todos modos, es un cambio pequeño en `DashboardShell.js`
 (las banderas `showComparison` / `showCitiesProducts` / `showFunnel`).
 
+## Marca (colores y tipografía)
+
+El dashboard usa la paleta oficial de Plenlife, definida como tokens en `tailwind.config.js`:
+
+| Token | Hex | Uso |
+|---|---|---|
+| `brand` (DEFAULT) | `#086eb6` | Azul principal — headers activos, barras de Meta, funnel |
+| `brand-bright` | `#009dde` | Azul secundario — acentos interactivos, barras de Google, último paso del funnel |
+| `panel` | `#ffffff` | Blanco de marca — todas las tarjetas y superficies |
+| `paper` | `#eef5fa` | Fondo de página (un tinte muy claro del azul, para que las tarjetas blancas resalten) |
+| `ink` | `#0b2a45` | Texto — un azul marino oscuro derivado de la marca (negro puro chocaría con la paleta) |
+| `line` | `#d9e6ef` | Líneas divisorias |
+
+**Tipografía:** todo el dashboard usa **Poppins** (vía `next/font/google`, pesos 400–700) — títulos, cuerpo, tablas y números.
+
+**Sobre "Biro Script":** no está disponible en Google Fonts — es una fuente de terceros (IngoFonts) cuya versión gratuita es solo para uso personal; la versión con licencia comercial ("Biro Script Plus") es de paga. Como además es manuscrita, no es ideal para números/tablas de un dashboard. Por ahora el header solo muestra el texto "Plenlife" en azul de marca. Si me pasas el archivo de la fuente con licencia comercial (`.woff2`), puedo agregarla como acento puntual (por ejemplo, solo en el wordmark del header) vía `next/font/local`. También podríamos simplemente usar el logo real de Plenlife (imagen) en el header en vez de tipografía — mándamelo en PNG/SVG con fondo transparente y lo integro.
+
 ## Estado de las conexiones
 
 - **Meta Ads → conectado de verdad.** `lib/connectors/meta.js` llama a la Marketing API

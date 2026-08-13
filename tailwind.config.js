@@ -7,31 +7,24 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        paper: '#F6F4EF',
-        ink: '#16241E',
-        panel: '#FFFFFF',
-        line: '#E2DED2',
-        forest: {
-          DEFAULT: '#173C32',
-          light: '#245645',
+        // Plenlife brand kit — exact hexes.
+        paper: '#EEF5FA',   // page background (a light tint of the brand blue, not flat white,
+                             // so white panels/cards still stand out on the page)
+        panel: '#FFFFFF',   // card/surface background — brand white, exact
+        line: '#D9E6EF',    // hairline dividers, tinted from the brand blue
+        ink: '#0B2A45',     // body/heading text — a dark navy derived from the brand blues
+                             // (pure black would clash with the blue palette; this reads as
+                             // "brand navy" instead of generic black)
+        brand: {
+          DEFAULT: '#086eb6', // deep blue — primary brand color
+          bright: '#009dde',  // sky blue — secondary brand color / interactive accent
         },
-        gold: {
-          DEFAULT: '#C98A2C',
-          light: '#E3AE5C',
-        },
-        rise: '#3E8F62',
-        fall: '#B54B3B',
+        rise: '#2F9E5C', // kept neutral (not brand blue) so it only ever means "up"
+        fall: '#C0473A', // kept neutral (not brand blue) so it only ever means "down/error"
       },
       fontFamily: {
-        display: ['var(--font-display)'],
-        body: ['var(--font-body)'],
-        mono: ['var(--font-mono)'],
-      },
-      backgroundImage: {
-        'dot-grid': 'radial-gradient(circle, #16241E12 1px, transparent 1px)',
-      },
-      backgroundSize: {
-        'dot-grid': '16px 16px',
+        display: ['var(--font-poppins)'],
+        body: ['var(--font-poppins)'],
       },
     },
   },
