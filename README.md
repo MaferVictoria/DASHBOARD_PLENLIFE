@@ -97,7 +97,12 @@ El dashboard usa la paleta oficial de Plenlife, definida como tokens en `tailwin
   El **funnel** (visitas → carrito → pago → compra) sigue en mock — la API de Órdenes
   de Shopify no tiene esos datos de sesión; se necesita la API de Analytics de Shopify
   o GA4 (ver el comentario al inicio de `lib/connectors/shopify.js`).
-- **Google Ads → sigue en mock**, listo para el mismo tratamiento cuando tengas las credenciales.
+- **Google Ads → conectado de verdad.** `lib/connectors/googleAds.js` usa OAuth
+  (refresh token) + GAQL (Google Ads Query Language) contra la API real, filtrado
+  siempre a `campaign.advertising_channel_type = 'PERFORMANCE_MAX'`. Si tu developer
+  token quedó en **Explorer Access** (el nivel automático, sin solicitud), el límite
+  es 2,880 operaciones/día — de sobra para este dashboard. Si algún día ves errores
+  de `RESOURCE_EXHAUSTED`, es la señal de que hay que solicitar Basic Access.
 
 Si por alguna razón las variables de entorno no están presentes (por ejemplo corriendo
 `npm run dev` en tu laptop sin `.env.local`), cada conector cae automáticamente a datos
@@ -150,12 +155,6 @@ Para CPA y CAC (donde bajar es bueno), el color se invierte: un aumento se ve en
 rojo y una baja en verde — al revés que en gasto/ventas/pedidos, donde subir es
 lo que normalmente se busca.
 
-## Conectar datos reales (Google Ads pendiente)
-
-`lib/connectors/googleAds.js` tiene el comentario `TODO` con el endpoint exacto,
-los campos a mapear, y qué credenciales necesita — mismo patrón que ya se usó
-para Meta y Shopify.
-
 ## Desplegar en Vercel
 
 1. Sube este contenido a tu repo (`git init`, `git add .`, `git commit`, `git push`).
@@ -165,7 +164,6 @@ para Meta y Shopify.
 
 ## Próximos pasos sugeridos
 
-- Conectar Google Ads (Meta y Shopify ya están conectados de verdad).
 - Vigilar los logs de Vercel las primeras veces que uses "Todo el histórico" en Shopify.
 - Decidir si el top de ciudades/productos debe respetar el rango de fecha
   seleccionado (hoy siempre muestra los últimos 3 meses, sin importar el filtro).
