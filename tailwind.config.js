@@ -8,13 +8,13 @@ module.exports = {
     extend: {
       colors: {
         // Plenlife brand kit — exact hexes.
-        paper: '#EEF5FA',   // page background (a light tint of the brand blue, not flat white,
-                             // so white panels/cards still stand out on the page)
+        paper: '#FFFFFF',   // page background — white, per brand request (blue is sidebar-only now)
         panel: '#FFFFFF',   // card/surface background — brand white, exact
         line: '#D9E6EF',    // hairline dividers, tinted from the brand blue
         ink: '#0B2A45',     // body/heading text — a dark navy derived from the brand blues
                              // (pure black would clash with the blue palette; this reads as
                              // "brand navy" instead of generic black)
+        sidebar: '#086eb6', // the one place brand blue still lives as a background
         brand: {
           DEFAULT: '#086eb6', // deep blue — primary brand color
           bright: '#009dde',  // sky blue — secondary brand color / interactive accent

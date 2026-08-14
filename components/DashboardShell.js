@@ -1,21 +1,30 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import TabNav from './TabNav';
 import DateRangeSelector from './DateRangeSelector';
 import KpiGrid from './KpiGrid';
 import MonthlySpendChart from './MonthlySpendChart';
+import ComboMonthlyChart from './ComboMonthlyChart';
 import PlatformComparisonTable from './PlatformComparisonTable';
 import TopCitiesTable from './TopCitiesTable';
 import TopProductsTable from './TopProductsTable';
 import FunnelBreakdown from './FunnelBreakdown';
+import CustomerBreakdown from './CustomerBreakdown';
 import SectionHeader from './SectionHeader';
-import { defaultRange, getPreviousRange } from '@/lib/dateRanges';
+import { defaultRange, getPreviousRange, monthsSoFar } from '@/lib/dateRanges';
 import { computeBlended } from '@/lib/metrics';
 
 const EMPTY_META = { spend: 0, purchases: 0, purchaseValue: 0, roas: 0, cpa: 0 };
 const EMPTY_GOOGLE = { spend: 0, conversions: 0, conversionValue: 0, roas: 0, cpa: 0 };
-const EMPTY_SHOPIFY = { totalSales: 0, netSales: 0, orders: 0, newCustomers: 0, returningCustomers: 0 };
+const EMPTY_SHOPIFY = {
+  totalSales: 0,
+  netSales: 0,
+  orders: 0,
+  newCustomers: 0,
+  returningCustomers: 0,
+  newCustomerRevenue: 0,
+};
+const EMPTY_FUNNEL = { pageViews: 0, addToCart: 0, checkoutInfo: 0, purchases: 0 };
 
 async function fetchJSON(url) {
   try {
@@ -46,6 +55,22 @@ function ErrorBanner({ errors }) {
   );
 }
 
+// Merges two {month, spend}-shaped arrays into combined ad spend, matched by
+// month LABEL (not array index) so a partial/failed fetch on one platform
+// doesn't silently misalign with the other's months.
+function mergeMonthlySpendAndSales(metaMonthly, googleMonthly, shopifyMonthly) {
+  const months = monthsSoFar(new Date());
+  return months.map((month) => {
+    const m = metaMonthly.find((x) => x.month === month);
+    const g = googleMonthly.find((x) => x.month === month);
+    const s = shopifyMonthly.find((x) => x.month === month);
+    const metaSpend = m ? m.spend : null;
+    const googleSpend = g ? g.spend : null;
+    const spend = metaSpend === null || googleSpend === null ? null : (metaSpend ?? 0) + (googleSpend ?? 0);
+    return { month, spend, sales: s ? s.value : null };
+  });
+}
+
 // platform: 'all' | 'meta' | 'google' | 'shopify'
 // title/subtitle: copy shown at the top of the page for this tab.
 export default function DashboardShell({ platform, title, subtitle }) {
@@ -53,13 +78,14 @@ export default function DashboardShell({ platform, title, subtitle }) {
   const [loading, setLoading] = useState(true);
   const [meta, setMeta] = useState(EMPTY_META);
   const [metaMonthly, setMetaMonthly] = useState([]);
+  const [metaFunnel, setMetaFunnel] = useState(EMPTY_FUNNEL);
   const [google, setGoogle] = useState(EMPTY_GOOGLE);
   const [googleMonthly, setGoogleMonthly] = useState([]);
   const [shopify, setShopify] = useState(EMPTY_SHOPIFY);
   const [shopifyMonthly, setShopifyMonthly] = useState([]);
   const [topCitiesByMonth, setTopCitiesByMonth] = useState([]);
   const [topProductsByMonth, setTopProductsByMonth] = useState([]);
-  const [funnel, setFunnel] = useState({ pageViews: 0, addToCart: 0, checkoutInfo: 0, purchases: 0 });
+  const [siteFunnel, setSiteFunnel] = useState(EMPTY_FUNNEL);
   const [errors, setErrors] = useState({ meta: null, google: null, shopify: null });
   const [previousMeta, setPreviousMeta] = useState(null);
   const [previousGoogle, setPreviousGoogle] = useState(null);
@@ -96,9 +122,11 @@ export default function DashboardShell({ platform, title, subtitle }) {
             nextErrors.meta = metaRes.error;
             setMeta(EMPTY_META);
             setMetaMonthly([]);
+            setMetaFunnel(EMPTY_FUNNEL);
           } else {
             setMeta(metaRes.totals);
             setMetaMonthly(metaRes.monthly);
+            if (metaRes.funnel) setMetaFunnel(metaRes.funnel);
           }
         }
         if (googleRes) {
@@ -123,7 +151,7 @@ export default function DashboardShell({ platform, title, subtitle }) {
             setShopifyMonthly(shopifyRes.monthly);
             setTopCitiesByMonth(shopifyRes.topCitiesByMonth);
             setTopProductsByMonth(shopifyRes.topProductsByMonth);
-            setFunnel(shopifyRes.funnel);
+            setSiteFunnel(shopifyRes.funnel);
           }
         }
 
@@ -154,38 +182,58 @@ export default function DashboardShell({ platform, title, subtitle }) {
       : null;
 
   const showComparison = platform === 'all';
-  const showCitiesProducts = platform === 'all' || platform === 'shopify';
-  const showFunnel = platform === 'all' || platform === 'shopify';
+  const showCitiesProducts = platform === 'all';
+  const showSiteFunnel = platform === 'all' || platform === 'shopify';
+  const showMetaFunnel = platform === 'meta';
+  const showCustomerBreakdown = platform === 'shopify';
 
   let monthlyChart = null;
   if (platform === 'meta') {
-    monthlyChart = <MonthlySpendChart data={metaMonthly} label="Gasto por mes — Meta Ads" barColor="#086eb6" />;
+    monthlyChart = (
+      <ComboMonthlyChart
+        data={metaMonthly}
+        label="Gasto vs. ventas generadas — Meta Ads"
+        spendLabel="Gasto"
+        salesLabel="Ventas generadas"
+        spendColor="#086eb6"
+        salesColor="#009dde"
+      />
+    );
   } else if (platform === 'google') {
-    monthlyChart = <MonthlySpendChart data={googleMonthly} label="Gasto por mes — Google Ads (PMax)" barColor="#009dde" />;
+    monthlyChart = (
+      <ComboMonthlyChart
+        data={googleMonthly}
+        label="Gasto vs. ventas generadas — Google Ads (PMax)"
+        spendLabel="Gasto"
+        salesLabel="Ventas generadas"
+        spendColor="#086eb6"
+        salesColor="#009dde"
+      />
+    );
   } else if (platform === 'shopify') {
-    monthlyChart = <MonthlySpendChart data={shopifyMonthly} label="Ventas netas por mes — Shopify" barColor="#0B2A45" />;
+    monthlyChart = <MonthlySpendChart data={shopifyMonthly} label="Ventas netas por mes — Shopify" barColor="#086eb6" />;
   } else {
     monthlyChart = (
-      <div className="grid gap-px bg-line sm:grid-cols-2">
-        <MonthlySpendChart data={metaMonthly} label="Gasto por mes — Meta Ads" barColor="#086eb6" />
-        <MonthlySpendChart data={googleMonthly} label="Gasto por mes — Google Ads (PMax)" barColor="#009dde" />
-      </div>
+      <ComboMonthlyChart
+        data={mergeMonthlySpendAndSales(metaMonthly, googleMonthly, shopifyMonthly)}
+        label="Gasto total (Meta + Google) vs. ventas — Shopify"
+        spendLabel="Gasto total"
+        salesLabel="Ventas (Shopify)"
+        spendColor="#086eb6"
+        salesColor="#009dde"
+      />
     );
   }
 
   return (
     <div className="mx-auto max-w-6xl px-4 pb-24 pt-6 sm:px-6">
-      <header className="mb-6">
+      <header className="mb-6 border-b border-line pb-4">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="font-body text-[11px] uppercase tracking-[0.18em] text-brand-bright">Plenlife</p>
             <h1 className="font-display text-2xl font-semibold text-ink sm:text-3xl">{title}</h1>
             {subtitle && <p className="mt-1 text-sm text-ink/60">{subtitle}</p>}
           </div>
           <DateRangeSelector range={range} onChange={setRange} />
-        </div>
-        <div className="mt-4">
-          <TabNav />
         </div>
       </header>
 
@@ -221,18 +269,36 @@ export default function DashboardShell({ platform, title, subtitle }) {
 
         {showCitiesProducts && (
           <>
-            <SectionHeader eyebrow="Geografía" title="Top ciudades por mes" />
+            <SectionHeader eyebrow="Geografía" title="Top ciudades por mes" note="Top 5 — mes actual y anterior" />
             <TopCitiesTable data={topCitiesByMonth} />
 
-            <SectionHeader eyebrow="Catálogo" title="Top productos por mes" />
+            <SectionHeader eyebrow="Catálogo" title="Top productos por mes" note="Top 5 — mes actual y anterior" />
             <TopProductsTable data={topProductsByMonth} />
           </>
         )}
 
-        {showFunnel && (
+        {showCustomerBreakdown && (
+          <>
+            <SectionHeader eyebrow="Clientes" title="Nuevos vs. recurrentes" />
+            <CustomerBreakdown shopify={shopify} />
+          </>
+        )}
+
+        {showMetaFunnel && (
+          <>
+            <SectionHeader
+              eyebrow="Funnel"
+              title="Funnel de Meta Ads"
+              note="Datos del píxel de Meta, no del sitio completo"
+            />
+            <FunnelBreakdown funnel={metaFunnel} />
+          </>
+        )}
+
+        {showSiteFunnel && (
           <>
             <SectionHeader eyebrow="Sitio" title="Funnel: visitas → compra" />
-            <FunnelBreakdown funnel={funnel} />
+            <FunnelBreakdown funnel={siteFunnel} />
           </>
         )}
       </main>

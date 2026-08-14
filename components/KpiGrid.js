@@ -72,9 +72,12 @@ export default function KpiGrid({
   }
 
   const cards = defs.map(buildCard);
+  // Match the grid to however many cards actually exist instead of a fixed
+  // 6, so a 5-card tab (Meta/Google/Shopify) doesn't leave an empty cell.
+  const lgColsClass = cards.length >= 6 ? 'lg:grid-cols-6' : 'lg:grid-cols-5';
 
   return (
-    <div className="grid grid-cols-2 gap-px bg-line sm:grid-cols-3 lg:grid-cols-6">
+    <div className={`grid grid-cols-2 gap-px border border-line bg-line sm:grid-cols-3 ${lgColsClass}`}>
       {cards.map((card) => (
         <KpiCard
           key={card.label}

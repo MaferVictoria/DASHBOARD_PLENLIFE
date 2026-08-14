@@ -23,7 +23,7 @@ export default function MonthlySpendChart({ data, barColor = '#086eb6', label })
   const chartData = data.map((d) => ({ ...d, value: d.value ?? 0, failed: d.value === null }));
 
   return (
-    <div className="bg-panel p-4">
+    <div className="border border-line bg-panel p-4">
       <div className="mb-3 flex items-baseline justify-between">
         <p className="font-body text-[10px] uppercase tracking-[0.14em] text-ink/60">{label}</p>
         {hasGaps && (

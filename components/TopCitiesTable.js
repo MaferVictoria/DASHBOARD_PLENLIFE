@@ -2,7 +2,7 @@ import { formatCurrency } from '@/lib/format';
 
 export default function TopCitiesTable({ data }) {
   return (
-    <div className="grid gap-px bg-line sm:grid-cols-3">
+    <div className="grid gap-px border border-line bg-line sm:grid-cols-2">
       {data.map(({ month, cities }) => (
         <div key={month} className="bg-panel p-4">
           <p className="mb-2 font-body text-[10px] uppercase tracking-[0.14em] text-ink/60">{month}</p>

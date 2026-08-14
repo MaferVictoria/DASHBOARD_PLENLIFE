@@ -25,7 +25,7 @@ export default function PlatformComparisonTable({ meta, google, shopify }) {
   ];
 
   return (
-    <div className="bg-panel">
+    <div className="border border-line bg-panel">
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr className="rule-thick border-t-2 border-ink text-left">

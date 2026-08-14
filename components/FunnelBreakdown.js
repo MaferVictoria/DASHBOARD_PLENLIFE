@@ -12,7 +12,7 @@ export default function FunnelBreakdown({ funnel }) {
   const max = steps[0].value || 1;
 
   return (
-    <div className="bg-panel p-4">
+    <div className="border border-line bg-panel p-4">
       <div className="space-y-3">
         {steps.map((step, i) => {
           const widthPct = Math.max(6, (step.value / max) * 100);
