@@ -19,7 +19,7 @@ export default function PlatformComparisonTable({ meta, google, shopify }) {
     {
       platform: 'Shopify (real)',
       spend: null,
-      reportedSales: shopify.netSales,
+      reportedSales: shopify.totalSales,
       roas: null,
     },
   ];

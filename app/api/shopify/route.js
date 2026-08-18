@@ -5,6 +5,7 @@ import {
   getShopifyTopCitiesByMonth,
   getShopifyTopProductsByMonth,
   getShopifyFunnel,
+  getShopifyNewCustomersMonthly,
 } from '@/lib/connectors/shopify';
 
 export async function GET(request) {
@@ -32,14 +33,16 @@ export async function GET(request) {
         topCitiesByMonth: [],
         topProductsByMonth: [],
         funnel: null,
+        newCustomersMonthly: [],
       });
     }
 
-    const [monthly, topCitiesByMonth, topProductsByMonth, funnel] = await Promise.all([
+    const [monthly, topCitiesByMonth, topProductsByMonth, funnel, newCustomersMonthly] = await Promise.all([
       getShopifyMonthly(),
       getShopifyTopCitiesByMonth(),
       getShopifyTopProductsByMonth(),
       getShopifyFunnel(start, end),
+      getShopifyNewCustomersMonthly(),
     ]);
 
     return NextResponse.json({
@@ -49,6 +52,7 @@ export async function GET(request) {
       topCitiesByMonth,
       topProductsByMonth,
       funnel,
+      newCustomersMonthly,
     });
   } catch (err) {
     console.error('[api/shopify] error:', err);

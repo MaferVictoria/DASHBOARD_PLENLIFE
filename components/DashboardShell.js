@@ -10,6 +10,7 @@ import TopCitiesTable from './TopCitiesTable';
 import TopProductsTable from './TopProductsTable';
 import FunnelBreakdown from './FunnelBreakdown';
 import CustomerBreakdown from './CustomerBreakdown';
+import NewCustomersMonthlyChart from './NewCustomersMonthlyChart';
 import SectionHeader from './SectionHeader';
 import { defaultRange, getPreviousRange, monthsSoFar } from '@/lib/dateRanges';
 import { computeBlended } from '@/lib/metrics';
@@ -23,6 +24,7 @@ const EMPTY_SHOPIFY = {
   newCustomers: 0,
   returningCustomers: 0,
   newCustomerRevenue: 0,
+  unknownCustomerOrders: 0,
 };
 const EMPTY_FUNNEL = { pageViews: 0, addToCart: 0, checkoutInfo: 0, purchases: 0 };
 
@@ -85,6 +87,7 @@ export default function DashboardShell({ platform, title, subtitle }) {
   const [shopifyMonthly, setShopifyMonthly] = useState([]);
   const [topCitiesByMonth, setTopCitiesByMonth] = useState([]);
   const [topProductsByMonth, setTopProductsByMonth] = useState([]);
+  const [newCustomersMonthly, setNewCustomersMonthly] = useState([]);
   const [siteFunnel, setSiteFunnel] = useState(EMPTY_FUNNEL);
   const [errors, setErrors] = useState({ meta: null, google: null, shopify: null });
   const [previousMeta, setPreviousMeta] = useState(null);
@@ -146,12 +149,14 @@ export default function DashboardShell({ platform, title, subtitle }) {
             setShopifyMonthly([]);
             setTopCitiesByMonth([]);
             setTopProductsByMonth([]);
+            setNewCustomersMonthly([]);
           } else {
             setShopify(shopifyRes.totals);
             setShopifyMonthly(shopifyRes.monthly);
             setTopCitiesByMonth(shopifyRes.topCitiesByMonth);
             setTopProductsByMonth(shopifyRes.topProductsByMonth);
             setSiteFunnel(shopifyRes.funnel);
+            setNewCustomersMonthly(shopifyRes.newCustomersMonthly || []);
           }
         }
 
@@ -269,10 +274,10 @@ export default function DashboardShell({ platform, title, subtitle }) {
 
         {showCitiesProducts && (
           <>
-            <SectionHeader eyebrow="Geografía" title="Top ciudades por mes" note="Top 5 — mes actual y anterior" />
+            <SectionHeader eyebrow="Geografía" title="Top ciudades por mes" note="Top 5 — mes actual y anterior (fijo, no cambia con el filtro de arriba)" />
             <TopCitiesTable data={topCitiesByMonth} />
 
-            <SectionHeader eyebrow="Catálogo" title="Top productos por mes" note="Top 5 — mes actual y anterior" />
+            <SectionHeader eyebrow="Catálogo" title="Top productos por mes" note="Top 5 — mes actual y anterior (fijo, no cambia con el filtro de arriba)" />
             <TopProductsTable data={topProductsByMonth} />
           </>
         )}
@@ -281,6 +286,13 @@ export default function DashboardShell({ platform, title, subtitle }) {
           <>
             <SectionHeader eyebrow="Clientes" title="Nuevos vs. recurrentes" />
             <CustomerBreakdown shopify={shopify} />
+
+            <SectionHeader
+              eyebrow="Tendencia"
+              title="Clientes nuevos por mes (Ene → hoy)"
+              note="Mismo criterio que el bloque de arriba"
+            />
+            <NewCustomersMonthlyChart data={newCustomersMonthly} />
           </>
         )}
 
