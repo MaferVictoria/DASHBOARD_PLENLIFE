@@ -1,12 +1,8 @@
 # Plenlife — Panel de Marketing
 
 Dashboard interno (Next.js) que junta Meta Ads, Google Ads (PMax) y Shopify en
-un solo lugar, pensado para desplegarse en Vercel desde este mismo repo.
-
-Ahora mismo corre con **datos de ejemplo (mock)** para que puedas navegar la
-estructura completa de inmediato. Los conectores reales están dejados listos
-en `lib/connectors/` — sustituir el mock ahí es el único paso pendiente para
-que muestre datos reales.
+un solo lugar, organizado por **objetivo de negocio** (no por herramienta),
+pensado para desplegarse en Vercel desde este mismo repo.
 
 ## Cómo correrlo localmente
 
@@ -15,156 +11,152 @@ npm install
 npm run dev
 ```
 
-Abre http://localhost:3000 — vas a ver las 4 pestañas ya navegables con datos
-de ejemplo.
+Abre http://localhost:3000. Cualquier conector sin credenciales cae
+automáticamente a datos de ejemplo, así que puedes navegar todo de inmediato.
+
+## Estructura de navegación (4 pestañas, por objetivo)
+
+| Pestaña | Ruta | Qué contiene |
+|---|---|---|
+| **Resumen Ejecutivo** | `/` | KPIs blended, gasto total vs. ventas, cruce de plataformas, Adquisición vs. Retención, top estados/productos, funnel de checkout |
+| **Adquisición / Paid Media** | `/adquisicion` | Meta y Google consolidados: KPIs, gasto vs. ventas generadas por cada uno, funnel de píxel de Meta |
+| **Ventas y Clientes** | `/ventas-clientes` | Datos 100% nativos de Shopify: ventas, nuevos vs. recurrentes, clientes nuevos por mes, carritos abandonados |
+| **Biblioteca de Creativos** | `/creativos` | Ranking de los mejores anuncios de Meta por ROAS, con miniatura |
+
+El filtro de fecha (arriba a la derecha en cada pestaña) es **compartido entre
+las 4** — se guarda en un Context de React que vive en `app/layout.js` (no se
+resetea al cambiar de pestaña, ver `components/DateRangeProvider.js`).
 
 ## Estructura de carpetas
 
 ```
 app/
-  page.js              → Pestaña "Resumen general" (Meta + Google + Shopify)
-  meta/page.js          → Pestaña "Meta"
-  google/page.js        → Pestaña "Google"
-  shopify/page.js        → Pestaña "Shopify"
-  api/meta/route.js      → Endpoint que sirve métricas de Meta
-  api/google/route.js    → Endpoint que sirve métricas de Google Ads
-  api/shopify/route.js   → Endpoint que sirve métricas de Shopify
-  layout.js / globals.css → Layout raíz, fuentes y estilos base
+  page.js                    → Resumen Ejecutivo (/)
+  adquisicion/page.js         → Adquisición / Paid Media
+  ventas-clientes/page.js     → Ventas y Clientes
+  creativos/page.js           → Biblioteca de Creativos
+  api/meta/route.js           → Totales + mensual + funnel de Meta
+  api/meta/creatives/route.js → Ranking de creativos (nivel anuncio) de Meta
+  api/google/route.js         → Totales + mensual de Google Ads
+  api/shopify/route.js        → Totales + mensual + top estados/productos + funnel de checkout
+  layout.js                   → Sidebar + DateRangeProvider + fuentes
 
 components/
-  DashboardShell.js      → Arma cada pestaña: fetch de datos + qué secciones mostrar
-  TabNav.js               → Navegación entre las 4 pestañas
-  DateRangeSelector.js    → 7 / 14 / 30 días + rango personalizado
-  KpiCard.js / KpiGrid.js → Tarjetas de KPIs (cambian según la pestaña)
-  MonthlySpendChart.js    → Desglose mensual (Ene → mes actual)
-  PlatformComparisonTable.js → Meta / Google / Shopify lado a lado (no atribución)
-  TopCitiesTable.js       → Top ciudades por mes
-  TopProductsTable.js     → Top productos por mes
-  FunnelBreakdown.js      → Visitas → carrito → pago → compra
+  Sidebar.js                  → Navegación lateral (logo + 4 pestañas)
+  DateRangeProvider.js        → Context del filtro de fecha compartido
+  ResumenEjecutivoShell.js     → Arma la pestaña de Resumen Ejecutivo
+  AdquisicionShell.js          → Arma la pestaña de Adquisición
+  VentasClientesShell.js       → Arma la pestaña de Ventas y Clientes
+  CreativosShell.js            → Arma la pestaña de Biblioteca de Creativos
+  KpiGrid.js / KpiCard.js      → Tarjetas de KPI (con cambio vs. periodo anterior)
+  ComboMonthlyChart.js         → Gráfico combinado (barra de gasto + línea de ventas)
+  MonthlySpendChart.js         → Gráfico de una sola serie (usado en Shopify)
+  NewCustomersMonthlyChart.js  → Clientes nuevos + valor de sus pedidos, por mes
+  UserBehaviorPanel.js         → Adquisición vs. Retención
+  CustomerBreakdown.js         → Nuevos/recurrentes/ticket promedio (snapshot del periodo)
+  CreativeRankingTable.js      → Tabla de ranking de creativos
+  TopStatesTable.js            → Top estados por mes
+  TopProductsTable.js          → Top productos por mes
+  FunnelBreakdown.js           → Funnel genérico (2 o 4 pasos, según quién lo use)
+  PlatformComparisonTable.js   → Meta / Google / Shopify lado a lado (no atribución)
+  ErrorBanner.js               → Banner rojo de errores, compartido
 
 lib/
-  connectors/meta.js       → TODO: reemplazar mock por la llamada real a Meta Marketing API
-  connectors/googleAds.js  → TODO: reemplazar mock por la llamada real a Google Ads API (PMax)
-  connectors/shopify.js    → TODO: reemplazar mock por la llamada real a Shopify Admin API
-  mockData.js              → Generador de datos de ejemplo (borrar cuando ya no se use)
-  metrics.js               → Cálculo de MER, ROAS blended, CAC blended
-  dateRanges.js             → Lógica de presets de fecha
-  format.js                 → Formato de moneda/números en es-MX
+  connectors/meta.js          → TODO real: totales, mensual, funnel, ranking de creativos
+  connectors/googleAds.js     → TODO real: totales, mensual
+  connectors/shopify.js       → TODO real: totales, mensual, top estados/productos, carritos abandonados
+  fetchJSON.js                 → Helper de fetch compartido (nunca truena, regresa {error})
+  mockData.js                  → Generador de datos de ejemplo
+  metrics.js                   → Cálculo de MER, ROAS blended, CAC blended, cambios de periodo
+  dateRanges.js                 → Presets de fecha + cálculo de periodo anterior
+  format.js                     → Formato de moneda/números en es-MX
 ```
-
-## Qué se ve en cada pestaña
-
-| Sección | Resumen general | Meta | Google | Shopify |
-|---|---|---|---|---|
-| KPIs | ✅ (blended) | ✅ | ✅ | ✅ |
-| Desglose mensual | ✅ (Meta + Google) | ✅ | ✅ | ✅ (ventas netas) |
-| Tabla Plataformas vs. Shopify | ✅ | — | — | — |
-| Top ciudades / productos por mes | ✅ | — | — | ✅ |
-| Funnel (visitas → compra) | ✅ | — | — | ✅ |
-
-**Nota de una decisión que tomé:** la tabla comparativa, el top de
-ciudades/productos y el funnel viven en "Resumen general" y "Shopify" porque
-son datos que solo existen del lado de Shopify (o son, por definición, un
-cruce entre plataformas). No tendría sentido repetirlos en las pestañas de
-Meta o Google, que no tienen esa información. Si prefieres verlos en las 4
-pestañas de todos modos, es un cambio pequeño en `DashboardShell.js`
-(las banderas `showComparison` / `showCitiesProducts` / `showFunnel`).
 
 ## Marca (colores y tipografía)
 
-El dashboard usa la paleta oficial de Plenlife, definida como tokens en `tailwind.config.js`:
-
 | Token | Hex | Uso |
 |---|---|---|
-| `brand` (DEFAULT) | `#086eb6` | Azul principal — headers activos, barras de Meta, funnel |
-| `brand-bright` | `#009dde` | Azul secundario — acentos interactivos, barras de Google, último paso del funnel |
-| `panel` | `#ffffff` | Blanco de marca — todas las tarjetas y superficies |
-| `paper` | `#eef5fa` | Fondo de página (un tinte muy claro del azul, para que las tarjetas blancas resalten) |
-| `ink` | `#0b2a45` | Texto — un azul marino oscuro derivado de la marca (negro puro chocaría con la paleta) |
-| `line` | `#d9e6ef` | Líneas divisorias |
+| `sidebar` | `#086eb6` | Fondo de la barra lateral — el único lugar azul de marca |
+| `brand` (DEFAULT) | `#086eb6` | Acentos, texto de enlaces activos, ROAS en la tabla de creativos |
+| `brand-bright` | `#009dde` | Líneas de gráficos, checkmarks |
+| `panel` / `paper` | `#ffffff` | Todo el resto del dashboard es blanco — las tarjetas se distinguen por borde (`line`), no por color de fondo |
+| `ink` | `#0b2a45` | Texto |
+| `line` | `#d9e6ef` | Bordes y líneas divisorias |
 
-**Tipografía:** todo el dashboard usa **Poppins** (vía `next/font/google`, pesos 400–700) — títulos, cuerpo, tablas y números.
+Tipografía: **Poppins** en todo.
 
-**Sobre "Biro Script":** no está disponible en Google Fonts — es una fuente de terceros (IngoFonts) cuya versión gratuita es solo para uso personal; la versión con licencia comercial ("Biro Script Plus") es de paga. Como además es manuscrita, no es ideal para números/tablas de un dashboard. Por ahora el header solo muestra el texto "Plenlife" en azul de marca. Si me pasas el archivo de la fuente con licencia comercial (`.woff2`), puedo agregarla como acento puntual (por ejemplo, solo en el wordmark del header) vía `next/font/local`. También podríamos simplemente usar el logo real de Plenlife (imagen) en el header en vez de tipografía — mándamelo en PNG/SVG con fondo transparente y lo integro.
+## Estado de las conexiones reales
 
-## Estado de las conexiones
+- **Meta Ads** → conectado de verdad (totales, mensual, funnel de píxel, y
+  ahora también **ranking de creativos a nivel anuncio** con miniatura vía
+  `lib/connectors/meta.js` → `getMetaTopCreatives()`).
+- **Google Ads (PMax)** → conectado de verdad (totales, mensual).
+- **Shopify** → conectado de verdad (totales, mensual, top estados/productos,
+  clientes nuevos por mes, **carritos abandonados** vía `abandonedCheckoutsCount`).
 
-- **Meta Ads → conectado de verdad.** `lib/connectors/meta.js` llama a la Marketing API
-  (`/insights`) usando `META_ACCESS_TOKEN` y `META_AD_ACCOUNT_ID`.
-- **Shopify → conectado de verdad.** `lib/connectors/shopify.js` llama a la Admin API
-  (GraphQL) usando `SHOPIFY_STORE_DOMAIN` y `SHOPIFY_ADMIN_API_TOKEN`. Lee los pedidos
-  reales de la tienda para ventas, pedidos, clientes, top ciudades y top productos.
-  El **funnel** (visitas → carrito → pago → compra) sigue en mock — la API de Órdenes
-  de Shopify no tiene esos datos de sesión; se necesita la API de Analytics de Shopify
-  o GA4 (ver el comentario al inicio de `lib/connectors/shopify.js`).
-- **Google Ads → conectado de verdad.** `lib/connectors/googleAds.js` usa OAuth
-  (refresh token) + GAQL (Google Ads Query Language) contra la API real, filtrado
-  siempre a `campaign.advertising_channel_type = 'PERFORMANCE_MAX'`. Si tu developer
-  token quedó en **Explorer Access** (el nivel automático, sin solicitud), el límite
-  es 2,880 operaciones/día — de sobra para este dashboard. Si algún día ves errores
-  de `RESOURCE_EXHAUSTED`, es la señal de que hay que solicitar Basic Access.
+Si un conector no tiene credenciales configuradas, cae a datos de ejemplo
+automáticamente — pero en Vercel, con las variables puestas, todo jala real.
 
-Si por alguna razón las variables de entorno no están presentes (por ejemplo corriendo
-`npm run dev` en tu laptop sin `.env.local`), cada conector cae automáticamente a datos
-de ejemplo para que puedas seguir trabajando — pero en Vercel, con las variables ya
-puestas, jala datos reales.
+## El funnel de "checkout iniciado → compras" (Resumen Ejecutivo)
 
-### ⚠️ Cosas a vigilar con el conector real de Shopify
+Este es un cambio importante respecto a versiones anteriores: el funnel ya
+**no muestra "visitas a la página" ni "añadido al carrito"**. Se quitaron
+esos dos pasos porque **no es posible obtenerlos de verdad desde la API de
+Shopify** — son datos de analítica de sesión (requieren GA4 o el Pixel de
+Shopify conectado aparte), no datos de pedidos/checkouts.
 
-1. **Aproximaciones, no exactitud perfecta.** "Nuevos vs. recurrentes" usa el conteo
-   de pedidos de por vida del cliente (`numberOfOrders`) al momento de la consulta —
-   es la aproximación estándar en este tipo de integración, pero no es idéntica al
-   reporte nativo de Shopify (Analytics → "Primera compra vs. recurrente"), que sí
-   sabe con certeza cuál fue el primer pedido de cada cliente. "Ventas totales/netas"
-   se aproximan de `currentTotalPriceSet`/`currentSubtotalPriceSet` — deberían
-   coincidir muy de cerca con los reportes de Shopify, pero no están garantizados a
-   coincidir al peso. Te recomiendo comparar contra el Shopify Analytics nativo la
-   primera semana para calibrar confianza.
-2. **"Todo el histórico" puede tronar en el plan Hobby de Vercel.** Las funciones
-   serverless en Hobby tienen un límite de ~10 segundos. Si Plenlife tiene muchos
-   pedidos acumulados, agregar años de historial en una sola consulta puede
-   exceder ese límite (verás un timeout, o el error explícito de "demasiadas
-   órdenes" que puse como límite de seguridad en el código). Si eso pasa:
-   acota el rango, sube a Vercel Pro, o (la solución correcta a mayor escala)
-   cambia esto a un job que precalcula y guarda los resultados en vez de
-   calcularlos en cada carga de página.
-3. **No lo he podido probar contra la tienda real** (mi entorno no tiene acceso
-   a la red de Shopify) — el código está escrito correctamente según la
-   documentación de la GraphQL Admin API, pero revisa los logs de la función en
-   Vercel (Deployments → función `/api/shopify`) las primeras veces que lo uses
-   para confirmar que todo jala bien.
+Lo que sí se muestra, con datos 100% reales de Shopify:
+- **Checkout iniciado** = carritos abandonados (`abandonedCheckoutsCount`) + pedidos completados
+- **Compras** = pedidos completados
+
+⚠️ `abandonedCheckoutsCount` requiere, además del scope `read_orders`, el
+permiso **`manage_abandoned_checkouts`** en tu app personalizada de Shopify.
+Si ves un error de permisos en esta llamada específica, es casi seguro que
+falta agregar ese permiso en la configuración de la app.
+
+## Ranking de Creativos (Biblioteca de Creativos)
+
+Solo Meta por ahora (Google PMax no expone miniaturas de creativo de forma
+tan directa). Ordenado por ROAS descendente, top 5, excluyendo anuncios sin
+gasto en el periodo (un ROAS sobre $0 de gasto no es un dato útil para
+rankear). Cada fila hace una llamada adicional a Meta para traer la miniatura
+del creativo — solo para los que sí entran al ranking final, no para toda la
+cuenta.
+
+## Cosas que quedaron fuera de esta vuelta (a propósito)
+
+- **"Pacing"** (comparar gasto/ventas contra una meta mensual) se descartó —
+  no existe ese número de meta en ningún lado del sistema todavía. Si más
+  adelante quieren esto, lo más simple es una variable de entorno
+  (`MONTHLY_SPEND_GOAL`) que se actualice cada mes.
+- **"Costo por visita"** (en el panel de Adquisición vs. Retención) se
+  muestra como "no disponible" — depende del mismo dato de visitas al sitio
+  que el funnel no puede traer de Shopify. Mezclar ahí las visitas de Meta
+  con el gasto total (Meta+Google) daría un número engañoso, así que se dejó
+  honestamente vacío en vez de aproximado.
+- **Cohortes de clientes** (retención por cosecha de adquisición mes a mes)
+  no se implementó — es una funcionalidad grande por sí sola que merece su
+  propio diseño y pase de trabajo, no algo para meter de prisa en esta ronda.
 
 ## Filtro de fecha y comparación de periodos
 
-El selector de fecha ahora es un dropdown (como el de Shopify) con: Hoy, Ayer,
-Últimos 7/14/30 días, Mes pasado, Mes actual, Todo el histórico, y Personalizado.
-
-**Todas las tarjetas de KPI muestran el cambio vs. el periodo anterior** (absoluto
-y %). La comparación es contra un periodo de la misma duración inmediatamente
-anterior al seleccionado (el mismo criterio que usan GA4 y la mayoría de
-plataformas de ads) — por ejemplo, "Últimos 7 días" se compara contra los 7 días
-antes de esos. Para "Mes actual" (que normalmente está incompleto), se compara
-contra el mismo número de días de tapa del mes pasado, no contra el mes pasado
-completo, para que sea una comparación justa.
-
-**"Todo el histórico" no muestra comparación** — no existe un "periodo anterior"
-al histórico completo, así que las tarjetas muestran "sin periodo previo" en vez
-de un porcentaje inventado.
-
-Para CPA y CAC (donde bajar es bueno), el color se invierte: un aumento se ve en
-rojo y una baja en verde — al revés que en gasto/ventas/pedidos, donde subir es
-lo que normalmente se busca.
+Selector de fecha compartido entre las 4 pestañas (ver arriba). Todas las
+tarjetas de KPI muestran cambio vs. el periodo anterior de la misma duración,
+igual que antes. "Todo el histórico" no muestra comparación (no existe un
+"anterior" al histórico completo). Para CPA/CAC el color se invierte (subir
+es malo, bajar es bueno).
 
 ## Desplegar en Vercel
 
-1. Sube este contenido a tu repo (`git init`, `git add .`, `git commit`, `git push`).
-2. En vercel.com, "Add New Project" → importa el repo → Vercel detecta Next.js
-   automáticamente, no hace falta configurar nada.
-3. Agrega las variables de entorno antes del primer deploy con datos reales.
+1. Sube este contenido a tu repo (reemplazando todo el contenido anterior —
+   varias rutas y archivos cambiaron de lugar en esta versión).
+2. Vercel detecta Next.js automáticamente vía la integración con GitHub.
+3. Las variables de entorno ya configuradas (Meta, Google, Shopify) siguen
+   funcionando igual — no hay que tocar nada ahí.
 
 ## Próximos pasos sugeridos
 
-- Vigilar los logs de Vercel las primeras veces que uses "Todo el histórico" en Shopify.
-- Decidir si el top de ciudades/productos debe respetar el rango de fecha
-  seleccionado (hoy siempre muestra los últimos 3 meses, sin importar el filtro).
-- Autenticación/acceso al dashboard si se va a "subir a la web" públicamente.
+- Diseñar cohortes de clientes para Ventas y Clientes (retención por mes de adquisición).
+- Decidir si "Costo por visita" se resuelve conectando GA4, o se deja fuera permanentemente.
+- Si se retoma "Pacing", definir de dónde sale la meta mensual.
+- Considerar extender el Ranking de Creativos a Google (si Google expone algo comparable para PMax).

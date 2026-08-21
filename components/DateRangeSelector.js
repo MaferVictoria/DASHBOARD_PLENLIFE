@@ -2,8 +2,10 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { PRESETS, computeRangeForPreset } from '@/lib/dateRanges';
+import { useDateRange } from './DateRangeProvider';
 
-export default function DateRangeSelector({ range, onChange }) {
+export default function DateRangeSelector() {
+  const { range, setRange } = useDateRange();
   const [open, setOpen] = useState(false);
   const [view, setView] = useState('list'); // 'list' | 'custom'
   const [draftStart, setDraftStart] = useState(range.start);
@@ -22,7 +24,7 @@ export default function DateRangeSelector({ range, onChange }) {
   }, []);
 
   function selectPreset(preset) {
-    onChange({ id: preset.id, ...computeRangeForPreset(preset.id) });
+    setRange({ id: preset.id, ...computeRangeForPreset(preset.id) });
     setOpen(false);
   }
 
@@ -34,7 +36,7 @@ export default function DateRangeSelector({ range, onChange }) {
 
   function applyCustom() {
     if (!draftStart || !draftEnd) return;
-    onChange({ id: 'custom', start: draftStart, end: draftEnd });
+    setRange({ id: 'custom', start: draftStart, end: draftEnd });
     setOpen(false);
     setView('list');
   }

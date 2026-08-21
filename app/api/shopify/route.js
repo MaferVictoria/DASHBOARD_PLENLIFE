@@ -2,10 +2,10 @@ import { NextResponse } from 'next/server';
 import {
   getShopifyTotals,
   getShopifyMonthly,
-  getShopifyTopCitiesByMonth,
+  getShopifyTopStatesByMonth,
   getShopifyTopProductsByMonth,
-  getShopifyFunnel,
   getShopifyNewCustomersMonthly,
+  getShopifyAbandonedCheckoutsCount,
 } from '@/lib/connectors/shopify';
 
 export async function GET(request) {
@@ -13,7 +13,7 @@ export async function GET(request) {
   const start = searchParams.get('start');
   const end = searchParams.get('end');
   // Set by the "previous period" comparison fetch — skips monthly/top
-  // cities/top products/funnel, which are either range-independent or not
+  // states/top products/funnel, which are either range-independent or not
   // needed for a comparison card, and are the expensive part of this route
   // now that it scans real Shopify orders.
   const totalsOnly = searchParams.get('totalsOnly') === '1';
@@ -30,29 +30,34 @@ export async function GET(request) {
         range: { start, end },
         totals,
         monthly: [],
-        topCitiesByMonth: [],
+        topStatesByMonth: [],
         topProductsByMonth: [],
-        funnel: null,
         newCustomersMonthly: [],
+        abandonedCheckoutsCount: null,
+        checkoutFunnel: null,
       });
     }
 
-    const [monthly, topCitiesByMonth, topProductsByMonth, funnel, newCustomersMonthly] = await Promise.all([
-      getShopifyMonthly(),
-      getShopifyTopCitiesByMonth(),
-      getShopifyTopProductsByMonth(),
-      getShopifyFunnel(start, end),
-      getShopifyNewCustomersMonthly(),
-    ]);
+    const [monthly, topStatesByMonth, topProductsByMonth, newCustomersMonthly, abandonedCheckoutsCount] =
+      await Promise.all([
+        getShopifyMonthly(),
+        getShopifyTopStatesByMonth(),
+        getShopifyTopProductsByMonth(),
+        getShopifyNewCustomersMonthly(),
+        getShopifyAbandonedCheckoutsCount(start, end),
+      ]);
+
+    const checkoutFunnel = { checkoutsStarted: abandonedCheckoutsCount + totals.orders, purchases: totals.orders };
 
     return NextResponse.json({
       range: { start, end },
       totals,
       monthly,
-      topCitiesByMonth,
+      topStatesByMonth,
       topProductsByMonth,
-      funnel,
       newCustomersMonthly,
+      abandonedCheckoutsCount,
+      checkoutFunnel,
     });
   } catch (err) {
     console.error('[api/shopify] error:', err);

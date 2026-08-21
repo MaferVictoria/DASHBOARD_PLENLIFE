@@ -1,6 +1,7 @@
 import { Poppins } from 'next/font/google';
 import './globals.css';
 import Sidebar from '@/components/Sidebar';
+import { DateRangeProvider } from '@/components/DateRangeProvider';
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -17,10 +18,12 @@ export default function RootLayout({ children }) {
   return (
     <html lang="es">
       <body className={`${poppins.variable} font-body bg-paper text-ink antialiased`}>
-        <div className="flex min-h-screen">
-          <Sidebar />
-          <div className="min-w-0 flex-1">{children}</div>
-        </div>
+        <DateRangeProvider>
+          <div className="flex min-h-screen">
+            <Sidebar />
+            <div className="min-w-0 flex-1">{children}</div>
+          </div>
+        </DateRangeProvider>
       </body>
     </html>
   );

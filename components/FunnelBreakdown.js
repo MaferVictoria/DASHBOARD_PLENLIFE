@@ -2,14 +2,12 @@ import { formatNumber, formatPercent } from '@/lib/format';
 
 // Custom CSS funnel (recharts has no first-class funnel chart) styled as
 // descending ledger bars so it matches the rest of the report.
-export default function FunnelBreakdown({ funnel }) {
-  const steps = [
-    { key: 'pageViews', label: 'Visitas a la página', value: funnel.pageViews },
-    { key: 'addToCart', label: 'Añadido al carrito', value: funnel.addToCart },
-    { key: 'checkoutInfo', label: 'Información de pago', value: funnel.checkoutInfo },
-    { key: 'purchases', label: 'Compras', value: funnel.purchases },
-  ];
-  const max = steps[0].value || 1;
+//
+// Generic over the number of steps — used both for Meta's 4-step pixel
+// funnel and Shopify's 2-step real checkout funnel (checkouts started →
+// purchases). Pass `steps` as [{ key, label, value }], already in order.
+export default function FunnelBreakdown({ steps }) {
+  const max = steps[0]?.value || 1;
 
   return (
     <div className="border border-line bg-panel p-4">

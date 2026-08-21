@@ -5,17 +5,17 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 
 const NAV_ITEMS = [
-  { href: '/', label: 'Resumen general' },
-  { href: '/meta', label: 'Meta' },
-  { href: '/google', label: 'Google' },
-  { href: '/shopify', label: 'Shopify' },
+  { href: '/', label: 'Resumen Ejecutivo' },
+  { href: '/adquisicion', label: 'Adquisición / Paid Media' },
+  { href: '/ventas-clientes', label: 'Ventas y Clientes' },
+  { href: '/creativos', label: 'Biblioteca de Creativos' },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="flex w-56 shrink-0 flex-col bg-sidebar px-4 py-8">
+    <aside className="flex w-60 shrink-0 flex-col bg-sidebar px-4 py-8">
       <div className="mb-10 flex justify-center">
         <Image
           src="/plenlife-logo-white.png"
@@ -34,7 +34,7 @@ export default function Sidebar() {
               key={item.href}
               href={item.href}
               className={[
-                'rounded-lg px-4 py-2.5 font-display text-sm font-medium transition-colors',
+                'rounded-lg px-4 py-2.5 font-display text-sm font-medium leading-snug transition-colors',
                 active ? 'bg-white text-sidebar' : 'text-white/75 hover:bg-white/10 hover:text-white',
               ].join(' ')}
             >

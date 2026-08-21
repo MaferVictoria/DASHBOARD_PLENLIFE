@@ -1,11 +1,5 @@
-import DashboardShell from '@/components/DashboardShell';
+import ResumenEjecutivoShell from '@/components/ResumenEjecutivoShell';
 
 export default function Page() {
-  return (
-    <DashboardShell
-      platform="all"
-      title="Resumen general"
-      subtitle="Meta + Google sumados, y Shopify como fuente de verdad del negocio."
-    />
-  );
+  return <ResumenEjecutivoShell />;
 }
