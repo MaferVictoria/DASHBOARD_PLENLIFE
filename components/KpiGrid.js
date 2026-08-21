@@ -39,6 +39,12 @@ function buildCard({ label, current, previous, format, invert = false }) {
   return { label, value: format(current), changeText, direction };
 }
 
+// Guards the divide-by-zero case (no new customers that period) by returning
+// null instead of 0 — a $0 average ticket would misleadingly read as "free".
+function avgTicket(revenue, count) {
+  return count > 0 ? revenue / count : null;
+}
+
 // Chooses which KPI cards to render depending on the active tab, and pairs
 // each one with its equivalent from the previous period for the % / absolute
 // change line. `previousX` props are null when there's no previous period
@@ -65,6 +71,12 @@ export default function KpiGrid({
       { label: 'Ventas netas', current: shopify.netSales, previous: previousShopify?.netSales, format: formatCurrency },
       { label: 'Clientes nuevos', current: shopify.newCustomers, previous: previousShopify?.newCustomers, format: formatNumber },
       { label: 'Valor de compras (clientes nuevos)', current: shopify.newCustomerRevenue, previous: previousShopify?.newCustomerRevenue, format: formatCurrency },
+      {
+        label: 'Ticket promedio (clientes nuevos)',
+        current: avgTicket(shopify.newCustomerRevenue, shopify.newCustomers),
+        previous: previousShopify ? avgTicket(previousShopify.newCustomerRevenue, previousShopify.newCustomers) : undefined,
+        format: formatCurrency,
+      },
       { label: 'MER', current: blended.mer, previous: previousBlended?.mer, format: formatRatio },
       { label: 'ROAS blended', current: blended.blendedRoas, previous: previousBlended?.blendedRoas, format: formatRatio },
       { label: 'CAC blended', current: blended.blendedCac, previous: previousBlended?.blendedCac, format: formatCurrency, invert: true },

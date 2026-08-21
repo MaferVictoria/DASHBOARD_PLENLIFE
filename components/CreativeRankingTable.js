@@ -42,8 +42,13 @@ export default function CreativeRankingTable({ creatives }) {
                   </div>
                 )}
               </td>
-              <td className="max-w-[220px] truncate px-4 py-2.5 font-medium text-ink" title={c.adName}>
-                {c.adName}
+              <td className="max-w-[220px] px-4 py-2.5" title={c.adName}>
+                <p className="truncate font-medium text-ink">{c.adName}</p>
+                {c.audience && (
+                  <span className="mt-0.5 inline-block font-body text-[10px] uppercase tracking-wide text-ink/40">
+                    {c.audience}
+                  </span>
+                )}
               </td>
               <td className="px-4 py-2.5 font-body tabular-nums text-ink/80">{formatCurrency(c.spend)}</td>
               <td className="px-4 py-2.5 font-body tabular-nums text-ink/80">{formatNumber(c.clicks)}</td>

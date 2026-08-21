@@ -2,11 +2,10 @@ import { NextResponse } from 'next/server';
 import {
   getShopifyTotals,
   getShopifyMonthly,
-  getShopifyTopStatesByMonth,
-  getShopifyTopProductsByMonth,
   getShopifyNewCustomersMonthly,
   getShopifyAbandonedCheckoutsCount,
 } from '@/lib/connectors/shopify';
+import { getTopStatesByMonthFromSheet, getTopProductsByMonthFromSheet } from '@/lib/connectors/googleSheets';
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
@@ -38,11 +37,14 @@ export async function GET(request) {
       });
     }
 
+    // Top estados/productos come from the Google Sheet, not live Shopify —
+    // see lib/connectors/googleSheets.js for why. Everything else here is
+    // still the live Shopify Admin API.
     const [monthly, topStatesByMonth, topProductsByMonth, newCustomersMonthly, abandonedCheckoutsCount] =
       await Promise.all([
         getShopifyMonthly(),
-        getShopifyTopStatesByMonth(),
-        getShopifyTopProductsByMonth(),
+        getTopStatesByMonthFromSheet(),
+        getTopProductsByMonthFromSheet(),
         getShopifyNewCustomersMonthly(),
         getShopifyAbandonedCheckoutsCount(start, end),
       ]);

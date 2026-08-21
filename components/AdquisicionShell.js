@@ -13,16 +13,18 @@ import { getPreviousRange } from '@/lib/dateRanges';
 
 const EMPTY_META = { spend: 0, purchases: 0, purchaseValue: 0, roas: 0, cpa: 0 };
 const EMPTY_GOOGLE = { spend: 0, conversions: 0, conversionValue: 0, roas: 0, cpa: 0 };
-const EMPTY_FUNNEL = { pageViews: 0, addToCart: 0, checkoutInfo: 0, purchases: 0 };
+const EMPTY_META_FUNNEL = { pageViews: 0, addToCart: 0, checkoutInfo: 0, purchases: 0 };
+const EMPTY_GOOGLE_FUNNEL = { clicks: 0, addToCart: 0, beginCheckout: 0, purchases: 0 };
 
 export default function AdquisicionShell() {
   const { range } = useDateRange();
   const [loading, setLoading] = useState(true);
   const [meta, setMeta] = useState(EMPTY_META);
   const [metaMonthly, setMetaMonthly] = useState([]);
-  const [metaFunnel, setMetaFunnel] = useState(EMPTY_FUNNEL);
+  const [metaFunnel, setMetaFunnel] = useState(EMPTY_META_FUNNEL);
   const [google, setGoogle] = useState(EMPTY_GOOGLE);
   const [googleMonthly, setGoogleMonthly] = useState([]);
+  const [googleFunnel, setGoogleFunnel] = useState(EMPTY_GOOGLE_FUNNEL);
   const [errors, setErrors] = useState({ meta: null, google: null });
   const [previousMeta, setPreviousMeta] = useState(null);
   const [previousGoogle, setPreviousGoogle] = useState(null);
@@ -49,7 +51,7 @@ export default function AdquisicionShell() {
           nextErrors.meta = metaRes.error;
           setMeta(EMPTY_META);
           setMetaMonthly([]);
-          setMetaFunnel(EMPTY_FUNNEL);
+          setMetaFunnel(EMPTY_META_FUNNEL);
         } else {
           setMeta(metaRes.totals);
           setMetaMonthly(metaRes.monthly);
@@ -60,9 +62,11 @@ export default function AdquisicionShell() {
           nextErrors.google = googleRes.error;
           setGoogle(EMPTY_GOOGLE);
           setGoogleMonthly([]);
+          setGoogleFunnel(EMPTY_GOOGLE_FUNNEL);
         } else {
           setGoogle(googleRes.totals);
           setGoogleMonthly(googleRes.monthly);
+          if (googleRes.funnel) setGoogleFunnel(googleRes.funnel);
         }
 
         setPreviousMeta(prevMetaRes && !prevMetaRes.error ? prevMetaRes.totals : null);
@@ -84,6 +88,13 @@ export default function AdquisicionShell() {
     { key: 'addToCart', label: 'Añadido al carrito', value: metaFunnel.addToCart },
     { key: 'checkoutInfo', label: 'Información de pago', value: metaFunnel.checkoutInfo },
     { key: 'purchases', label: 'Compras', value: metaFunnel.purchases },
+  ];
+
+  const googleFunnelSteps = [
+    { key: 'clicks', label: 'Clics', value: googleFunnel.clicks },
+    { key: 'addToCart', label: 'Añadido al carrito', value: googleFunnel.addToCart },
+    { key: 'beginCheckout', label: 'Checkout iniciado', value: googleFunnel.beginCheckout },
+    { key: 'purchases', label: 'Compras', value: googleFunnel.purchases },
   ];
 
   return (
@@ -127,6 +138,13 @@ export default function AdquisicionShell() {
           spendColor="#086eb6"
           salesColor="#009dde"
         />
+
+        <SectionHeader
+          eyebrow="Funnel"
+          title="Funnel de Google Ads"
+          note="Depende de cómo estén configuradas tus conversiones"
+        />
+        <FunnelBreakdown steps={googleFunnelSteps} />
       </main>
     </div>
   );

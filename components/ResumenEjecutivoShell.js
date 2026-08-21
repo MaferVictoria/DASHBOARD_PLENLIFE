@@ -42,7 +42,7 @@ function mergeMonthlySpendAndSales(metaMonthly, googleMonthly, shopifyMonthly) {
     const metaSpend = m ? m.spend : null;
     const googleSpend = g ? g.spend : null;
     const spend = metaSpend === null || googleSpend === null ? null : (metaSpend ?? 0) + (googleSpend ?? 0);
-    return { month, spend, sales: s ? s.value : null };
+    return { month, spend, sales: s ? s.sales : null };
   });
 }
 

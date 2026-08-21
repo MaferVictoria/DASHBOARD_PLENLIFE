@@ -97,6 +97,27 @@ Tipografía: **Poppins** en todo.
 Si un conector no tiene credenciales configuradas, cae a datos de ejemplo
 automáticamente — pero en Vercel, con las variables puestas, todo jala real.
 
+## Top estados / Top productos: fuente = Google Sheet, no la API de Shopify
+
+Decisión deliberada, confirmada con el cliente: estas dos vistas (en Resumen
+Ejecutivo) leen de un Google Sheet que Plenlife mantiene a mano (bajando un
+reporte directo de Shopify), en vez de calcularse en vivo desde la Orders
+API. El resto del dashboard (KPIs, mensuales, funnel, clientes nuevos) sigue
+100% en la API en vivo de Shopify — esto es exclusivo de esas dos tablas.
+
+- **Conector:** `lib/connectors/googleSheets.js`
+- **Autenticación:** cuenta de servicio de Google (JWT firmado con la
+  llave privada, sin pantalla de consentimiento de usuario — ver
+  `.env.example` para las 4 variables necesarias)
+- **Cómo lee la hoja:** cada fila se valida con `isDataRow()` (debe tener
+  nombre de producto y un número de mes válido en la columna Q) antes de
+  usarse — así se saltan automáticamente las filas de encabezado de sección
+  ("ENERO", "FEBRERO", etc.) sin necesidad de saber en qué fila exacta están
+- **Si cambia la estructura de columnas de la hoja:** hay que actualizar el
+  objeto `COL` al inicio de `googleSheets.js` — el código lee por posición
+  de columna, no por nombre de encabezado, así que un reacomodo de columnas
+  en el Sheet rompe silenciosamente esto si no se actualiza ese mapeo.
+
 ## El funnel de "checkout iniciado → compras" (Resumen Ejecutivo)
 
 Este es un cambio importante respecto a versiones anteriores: el funnel ya
@@ -137,6 +158,37 @@ cuenta.
 - **Cohortes de clientes** (retención por cosecha de adquisición mes a mes)
   no se implementó — es una funcionalidad grande por sí sola que merece su
   propio diseño y pase de trabajo, no algo para meter de prisa en esta ronda.
+
+## ⚠️ Si los números de Shopify no cuadran contra otro reporte tuyo
+
+**Bug corregido (agosto 2026):** los pedidos **cancelados** se estaban contando
+de todas formas en ventas totales/netas y en el top de estados — un pedido
+cancelado no es una venta, pero la consulta original no lo excluía. Ya se
+arregló (`lib/connectors/shopify.js`, función `fetchOrdersInRange` filtra
+`cancelledAt` y `test`). Si acabas de actualizar el dashboard y los números
+bajaron respecto a antes, es justo por esto — revisa los logs de la función
+`/api/shopify` en Vercel, ahí vas a ver cuántos pedidos se excluyeron por
+rango de fecha.
+
+**Si después de esto SIGUE sin cuadrar exactamente**, en orden de probabilidad:
+
+1. **Límite de 60 días de Shopify.** Por default, una app solo puede ver
+   pedidos de los últimos 60 días, a menos que tenga aprobado el scope
+   `read_all_orders`. Si el rango que estás comparando se acerca o pasa esa
+   ventana, el dashboard puede estar viendo *menos* pedidos de los que
+   realmente existen — no un error, un vacío silencioso. Revisa en tu
+   Partner Dashboard de Shopify si esa app tiene `read_all_orders` aprobado.
+2. **Reembolsos que no se reflejan bien.** Los campos que usamos
+   (`currentSubtotalPriceSet`/`currentTotalPriceSet`) *deberían* actualizarse
+   solos cuando se hace un reembolso, pero hay reportes de comerciantes en el
+   foro de desarrolladores de Shopify de casos donde esto no pasa
+   correctamente. Si tienes pedidos con reembolsos parciales/totales en el
+   periodo que estás comparando, ahí es donde yo miraría después.
+3. **Definición distinta en tu otro dashboard.** Si ese otro reporte usa
+   "ventas brutas" en vez de netas, incluye/excluye envío o impuestos
+   distinto, o cuenta por fecha de *pago* en vez de fecha de *creación* del
+   pedido, los números nunca van a coincidir exactamente aunque ambos estén
+   "bien" — simplemente miden cosas ligeramente distintas.
 
 ## Filtro de fecha y comparación de periodos
 

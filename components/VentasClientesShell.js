@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useDateRange } from './DateRangeProvider';
 import DateRangeSelector from './DateRangeSelector';
 import KpiGrid from './KpiGrid';
-import MonthlySpendChart from './MonthlySpendChart';
+import SalesOrdersMonthlyChart from './SalesOrdersMonthlyChart';
 import CustomerBreakdown from './CustomerBreakdown';
 import NewCustomersMonthlyChart from './NewCustomersMonthlyChart';
 import SectionHeader from './SectionHeader';
@@ -91,7 +91,7 @@ export default function VentasClientesShell() {
         <KpiGrid platform="shopify" meta={{}} google={{}} shopify={shopify} blended={{}} previousShopify={previousShopify} />
 
         <SectionHeader eyebrow="Tendencia" title="Desglose mensual (Ene → hoy)" />
-        <MonthlySpendChart data={shopifyMonthly} label="Ventas netas por mes — Shopify" barColor="#086eb6" />
+        <SalesOrdersMonthlyChart data={shopifyMonthly} />
 
         <SectionHeader eyebrow="Clientes" title="Nuevos vs. recurrentes" />
         <CustomerBreakdown shopify={shopify} />

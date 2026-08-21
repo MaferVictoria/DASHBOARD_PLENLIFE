@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getGoogleTotals, getGoogleMonthly } from '@/lib/connectors/googleAds';
+import { getGoogleTotals, getGoogleMonthly, getGoogleFunnel } from '@/lib/connectors/googleAds';
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
@@ -13,8 +13,13 @@ export async function GET(request) {
 
   try {
     const totals = await getGoogleTotals(start, end);
-    const monthly = totalsOnly ? [] : await getGoogleMonthly();
-    return NextResponse.json({ range: { start, end }, totals, monthly });
+
+    if (totalsOnly) {
+      return NextResponse.json({ range: { start, end }, totals, monthly: [], funnel: null });
+    }
+
+    const [monthly, funnel] = await Promise.all([getGoogleMonthly(), getGoogleFunnel(start, end)]);
+    return NextResponse.json({ range: { start, end }, totals, monthly, funnel });
   } catch (err) {
     console.error('[api/google] error:', err);
     return NextResponse.json(
