@@ -1,4 +1,4 @@
-import { formatCurrency } from '@/lib/format';
+import { formatCurrency, formatNumber } from '@/lib/format';
 
 export default function TopProductsTable({ data }) {
   const colsClass = data.length >= 2 ? 'sm:grid-cols-2' : 'sm:grid-cols-1';
@@ -12,7 +12,12 @@ export default function TopProductsTable({ data }) {
               <li key={p.product} className="flex items-center justify-between gap-3 text-sm">
                 <span className="flex items-center gap-2 truncate text-ink/80">
                   <span className="font-body text-xs text-ink/40">{String(i + 1).padStart(2, '0')}</span>
-                  <span className="truncate">{p.product}</span>
+                  <span className="truncate">
+                    {p.product}
+                    <span className="ml-1.5 font-body text-xs text-ink/40">
+                      ({formatNumber(p.units)} {p.units === 1 ? 'unidad' : 'unidades'})
+                    </span>
+                  </span>
                 </span>
                 <span className="shrink-0 font-body tabular-nums text-ink/80">
                   {formatCurrency(p.sales)}
