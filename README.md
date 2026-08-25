@@ -195,7 +195,24 @@ tienda (`SHOPIFY_STORE_TIMEZONE`, default `America/Mexico_City` — cámbiala
 si la tienda usa otra zona). Esto afecta y mejora **todo** lo que depende de
 fechas en este conector, no solo top estados/productos.
 
-**Si después de ambos fixes SIGUE sin cuadrar exactamente**, en orden de probabilidad:
+**Bug corregido #3 (25 agosto 2026) — este era el más grande de los tres:**
+Confirmado con evidencia real (cliente comparó este dashboard contra un
+reporte nativo de Shopify con los mismos estados/productos): la tienda de
+Plenlife tiene **precios con IVA incluido** (`order.taxesIncluded = true`).
+El campo que usábamos para "ventas netas" (`currentSubtotalPriceSet`) trae
+ese IVA embebido, así que todo lo que llamábamos "ventas netas" en realidad
+traía el 16% de más. Corregido: se divide entre `(1 + SHOPIFY_TAX_RATE)`
+(default 0.16) cuando el pedido tiene `taxesIncluded=true`. Esto es una
+aproximación por tasa fija, no una lectura exacta del monto de impuesto de
+cada pedido — el campo exacto de Shopify para eso (`currentTotalTaxSet` o
+similar) no se pudo confirmar con suficiente certeza como para arriesgar que
+toda la consulta se rompiera por un nombre de campo equivocado. Si Plenlife
+alguna vez tiene productos con tasas de IVA mixtas o pedidos exentos, esto
+dejaría de ser exacto — avísame si eso pasa. "Ventas totales"
+(`currentTotalPriceSet`) no cambió — esa sí debe incluir impuestos por
+definición.
+
+**Si después de los 3 fixes SIGUE sin cuadrar exactamente**, en orden de probabilidad:
 
 1. **Límite de 60 días de Shopify.** Por default, una app solo puede ver
    pedidos de los últimos 60 días, a menos que tenga aprobado el scope
