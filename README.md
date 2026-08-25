@@ -181,7 +181,21 @@ bajaron respecto a antes, es justo por esto — revisa los logs de la función
 `/api/shopify` en Vercel, ahí vas a ver cuántos pedidos se excluyeron por
 rango de fecha.
 
-**Si después de esto SIGUE sin cuadrar exactamente**, en orden de probabilidad:
+**Bug corregido #2 (24 agosto 2026) — este era probablemente el más grande:**
+Shopify GraphQL siempre regresa y filtra fechas de pedidos en **UTC**, pero
+los reportes nativos de Shopify (Informes/Analytics) agrupan las ventas por
+el **día calendario de la tienda** (hora de México). Un pedido de las 11pm
+hora local ya cae en la madrugada del día siguiente en UTC — así que, sin
+corregir esto, pedidos de última hora se contaban en el día equivocado, y en
+los bordes de un rango de fechas hasta se podían perder pedidos completos.
+Es un problema ampliamente documentado por otros desarrolladores en el foro
+de Shopify. Ya se corrigió: la consulta pide un margen de 1 día extra a
+Shopify, y luego filtra con precisión usando la zona horaria real de la
+tienda (`SHOPIFY_STORE_TIMEZONE`, default `America/Mexico_City` — cámbiala
+si la tienda usa otra zona). Esto afecta y mejora **todo** lo que depende de
+fechas en este conector, no solo top estados/productos.
+
+**Si después de ambos fixes SIGUE sin cuadrar exactamente**, en orden de probabilidad:
 
 1. **Límite de 60 días de Shopify.** Por default, una app solo puede ver
    pedidos de los últimos 60 días, a menos que tenga aprobado el scope
