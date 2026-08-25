@@ -13,7 +13,7 @@ import UserBehaviorPanel from './UserBehaviorPanel';
 import SectionHeader from './SectionHeader';
 import ErrorBanner from './ErrorBanner';
 import { fetchJSON } from '@/lib/fetchJSON';
-import { getPreviousRange, monthsSoFar } from '@/lib/dateRanges';
+import { getPreviousRange, monthsSoFar, computeRangeForPreset } from '@/lib/dateRanges';
 import { computeBlended } from '@/lib/metrics';
 
 const EMPTY_META = { spend: 0, purchases: 0, purchaseValue: 0, roas: 0, cpa: 0 };
@@ -71,6 +71,13 @@ export default function ResumenEjecutivoShell() {
     const previousRange = getPreviousRange(range);
     const prevQs = previousRange ? `start=${previousRange.start}&end=${previousRange.end}&totalsOnly=1` : null;
 
+    // "Vista congelada del mes anterior" — only meaningful when looking at
+    // "Mes actual": a full, closed previous month next to the (still
+    // in-progress) current month. Any other filter just shows its own range.
+    const isThisMonth = range.id === 'this-month';
+    const frozenPrevMonth = isThisMonth ? computeRangeForPreset('last-month') : null;
+    const frozenQs = frozenPrevMonth ? `start=${frozenPrevMonth.start}&end=${frozenPrevMonth.end}&onlyTop=1` : null;
+
     Promise.all([
       fetchJSON(`/api/meta?${qs}`),
       fetchJSON(`/api/google?${qs}`),
@@ -78,8 +85,9 @@ export default function ResumenEjecutivoShell() {
       prevQs ? fetchJSON(`/api/meta?${prevQs}`) : null,
       prevQs ? fetchJSON(`/api/google?${prevQs}`) : null,
       prevQs ? fetchJSON(`/api/shopify?${prevQs}`) : null,
+      frozenQs ? fetchJSON(`/api/shopify?${frozenQs}`) : null,
     ])
-      .then(([metaRes, googleRes, shopifyRes, prevMetaRes, prevGoogleRes, prevShopifyRes]) => {
+      .then(([metaRes, googleRes, shopifyRes, prevMetaRes, prevGoogleRes, prevShopifyRes, frozenRes]) => {
         if (cancelled) return;
         const nextErrors = { meta: null, google: null, shopify: null };
 
@@ -111,9 +119,18 @@ export default function ResumenEjecutivoShell() {
         } else {
           setShopify(shopifyRes.totals);
           setShopifyMonthly(shopifyRes.monthly);
-          setTopStatesByMonth(shopifyRes.topStatesByMonth);
-          setTopProductsByMonth(shopifyRes.topProductsByMonth);
           setCheckoutFunnel(shopifyRes.checkoutFunnel || EMPTY_CHECKOUT_FUNNEL);
+
+          // When "Mes actual" is selected and the frozen-previous-month
+          // fetch succeeded, append it as a second block — the tables
+          // already render one column per block, so this just works.
+          const frozenStates = frozenRes && !frozenRes.error ? frozenRes.topStatesByMonth : [];
+          const frozenProducts = frozenRes && !frozenRes.error ? frozenRes.topProductsByMonth : [];
+          setTopStatesByMonth([...shopifyRes.topStatesByMonth, ...frozenStates]);
+          setTopProductsByMonth([...shopifyRes.topProductsByMonth, ...frozenProducts]);
+          if (frozenRes?.error) {
+            console.warn('[resumen ejecutivo] No se pudo cargar el mes anterior congelado:', frozenRes.error);
+          }
         }
 
         setPreviousMeta(prevMetaRes && !prevMetaRes.error ? prevMetaRes.totals : null);
@@ -186,10 +203,18 @@ export default function ResumenEjecutivoShell() {
         <SectionHeader eyebrow="Comportamiento" title="Adquisición vs. Retención" />
         <UserBehaviorPanel shopify={shopify} blended={blended} />
 
-        <SectionHeader eyebrow="Geografía" title="Top estados" note="Top 5 del periodo seleccionado arriba" />
+        <SectionHeader
+          eyebrow="Geografía"
+          title="Top estados"
+          note="Top 5 del periodo seleccionado arriba — con 'Mes actual' se agrega el mes anterior completo, congelado, para comparar"
+        />
         <TopStatesTable data={topStatesByMonth} />
 
-        <SectionHeader eyebrow="Catálogo" title="Top productos" note="Top 5 del periodo seleccionado arriba" />
+        <SectionHeader
+          eyebrow="Catálogo"
+          title="Top productos"
+          note="Top 5 del periodo seleccionado arriba — con 'Mes actual' se agrega el mes anterior completo, congelado, para comparar"
+        />
         <TopProductsTable data={topProductsByMonth} />
 
         <SectionHeader eyebrow="Funnel" title="Checkout iniciado → Compras" note="Datos reales de Shopify (Admin API)" />
