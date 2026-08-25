@@ -97,6 +97,63 @@ Tipografía: **Poppins** en todo.
 Si un conector no tiene credenciales configuradas, cae a datos de ejemplo
 automáticamente — pero en Vercel, con las variables puestas, todo jala real.
 
+## Cambios del 25 agosto 2026 (checklist de 9 puntos)
+
+Implementados a partir de un doc de cambios del cliente. Decisiones de diseño
+que tomé y que vale la pena que conozcas:
+
+1. **Colores de líneas vs. barras** — antes las líneas usaban el mismo azul
+   que las barras (poco contraste). Ahora las líneas usan colores dedicados:
+   **ámbar `#E8A33D`** para "pedidos" y **violeta `#8B5CF6`** para "ROAS
+   promedio", consistentes en todos los gráficos del dashboard.
+2. **Gráfico de Resumen Ejecutivo** — ahora son 2 barras (Gasto total,
+   Ventas netas Shopify) + 1 línea (Pedidos). Nuevo componente genérico
+   `MultiMetricMonthlyChart.js` que reemplaza a `ComboMonthlyChart.js`
+   (borrado, ya no lo usa nadie).
+3. **Tabla Plataformas vs. Shopify** — Shopify ahora son 3 filas (brutas/
+   netas/totales) en vez de 1. "Ventas brutas" es nuevo: se calcula desde el
+   precio original (antes de descuento) de cada línea de producto — requirió
+   agregar `originalTotalSet` a la consulta de Shopify. El % de variación se
+   calcula siempre contra **Ventas Netas** de Shopify.
+4. **Adquisición vs. Retención** — el lado de Adquisición ahora tiene un
+   borde y fondo azul de marca para distinguirlo. "Costo por visita" se
+   quitó (seguía sin dato disponible) y en su lugar va "Ticket promedio
+   (nuevos)". Los 6 datos ahora muestran % vs. periodo anterior, siempre.
+5. **Top estados/productos** — fecha en formato "1 de agosto de 2026", el
+   conteo de pedidos/unidades ahora es su propia línea en negrita/color (ya
+   no un paréntesis chiquito), y cada estado/producto individual tiene su
+   propio % vs. el mismo estado/producto en el periodo anterior — esto
+   necesitó una segunda consulta a Shopify (el periodo anterior completo)
+   dentro de `getShopifyTopStatesByMonth`/`getShopifyTopProductsByMonth`,
+   no solo los datos que ya se estaban pidiendo.
+6. **Funnel de compras (Resumen Ejecutivo)** — ⚠️ este es el que requiere
+   más contexto. El documento pide un funnel completo de "visitas → compra",
+   con una referencia que mezcla Meta + Shopify como fuente. Technically,
+   Shopify no puede dar "visitas"/"carrito" (ver limitación ya documentada
+   más abajo) — así que, siguiendo la referencia del cliente, el funnel
+   ahora es de **4 pasos con fuente mixta, claramente etiquetada**: Visitas
+   y Carrito vienen del píxel de Meta (`getMetaFunnel`, ya existía, reusado
+   aquí), Checkout y Compras siguen siendo 100% Shopify real. Esto es una
+   aproximación honesta — el "Visitas" que ves es tráfico atribuido a Meta,
+   no el tráfico total del sitio. Si el cliente esperaba tráfico total real,
+   eso sigue necesitando GA4 o Shopify Analytics, no está resuelto aquí.
+7. **Gráfico de Meta (Adquisición)** — 2 barras (Gasto, Ventas atribuidas) +
+   2 líneas (Pedidos, ROAS promedio mensual). El pedido mensual de Meta
+   ahora también trae conteo de compras (`getMetaMonthly` pide `actions`
+   además de `action_values`).
+8. **Diferenciar Meta vs. Google** — Meta usa la familia de azules de marca
+   (`#086eb6`/`#4A9FD8`), Google usa una familia verde (`#1F7A5C`/`#34B37A`)
+   deliberadamente distinta. **Asunción que tomé:** el doc solo mostró el
+   gráfico de 2 barras + 2 líneas para Meta explícitamente — apliqué la
+   misma estructura a Google por consistencia (hubiera sido raro que un
+   gráfico tuviera 2 barras+2 líneas y el otro no). Si eso no era lo que
+   querían para Google, es un cambio rápido revertir solo esa parte.
+9. **Tabla de creativos** — 11 columnas nuevas: Inversión, Alcance,
+   Impresiones, Frecuencia, CTR único, Visitas a la página, Costo por
+   visita, Compras, Valor de compras, Costo por compra, ROAS. Se quitó
+   "Clics". La tabla es ancha — hace scroll horizontal en pantallas
+   angostas en vez de encoger las columnas hasta ser ilegibles.
+
 ## Top estados / Top productos: vuelve a ser 100% API en vivo de Shopify
 
 Historia rápida por si algo de esto reaparece en el futuro: por un momento

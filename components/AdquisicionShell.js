@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useDateRange } from './DateRangeProvider';
 import DateRangeSelector from './DateRangeSelector';
 import KpiGrid from './KpiGrid';
-import ComboMonthlyChart from './ComboMonthlyChart';
+import MultiMetricMonthlyChart from './MultiMetricMonthlyChart';
 import FunnelBreakdown from './FunnelBreakdown';
 import SectionHeader from './SectionHeader';
 import ErrorBanner from './ErrorBanner';
@@ -15,6 +15,16 @@ const EMPTY_META = { spend: 0, purchases: 0, purchaseValue: 0, roas: 0, cpa: 0 }
 const EMPTY_GOOGLE = { spend: 0, conversions: 0, conversionValue: 0, roas: 0, cpa: 0 };
 const EMPTY_META_FUNNEL = { pageViews: 0, addToCart: 0, checkoutInfo: 0, purchases: 0 };
 const EMPTY_GOOGLE_FUNNEL = { clicks: 0, addToCart: 0, beginCheckout: 0, purchases: 0 };
+
+// Adds a per-month ROAS line (ventas atribuidas / gasto) to a monthly
+// {month, spend, sales, orders} series. A failed month (spend === null)
+// stays null here too, so MultiMetricMonthlyChart's gap styling still works.
+function withMonthlyRoas(monthly) {
+  return monthly.map((m) => ({
+    ...m,
+    roas: m.spend === null || m.spend === undefined ? null : m.spend > 0 ? (m.sales ?? 0) / m.spend : 0,
+  }));
+}
 
 export default function AdquisicionShell() {
   const { range } = useDateRange();
@@ -112,31 +122,41 @@ export default function AdquisicionShell() {
       <main className={loading ? 'opacity-50 transition-opacity' : 'transition-opacity'}>
         <ErrorBanner errors={errors} />
 
+        {/* Meta Ads — blue family, to visually distinguish from Google below */}
         <SectionHeader eyebrow="Meta Ads" title="Indicadores clave" note={`${range.start} → ${range.end}`} />
         <KpiGrid platform="meta" meta={meta} google={google} shopify={{}} blended={{}} previousMeta={previousMeta} />
 
-        <ComboMonthlyChart
-          data={metaMonthly}
-          label="Gasto vs. ventas generadas — Meta Ads"
-          spendLabel="Gasto"
-          salesLabel="Ventas generadas"
-          spendColor="#086eb6"
-          salesColor="#009dde"
+        <MultiMetricMonthlyChart
+          data={withMonthlyRoas(metaMonthly)}
+          label="Gasto vs. ventas atribuidas — pedidos y ROAS — Meta Ads"
+          bars={[
+            { dataKey: 'spend', label: 'Gasto', color: '#086eb6', format: 'currency' },
+            { dataKey: 'sales', label: 'Ventas atribuidas', color: '#4A9FD8', format: 'currency' },
+          ]}
+          lines={[
+            { dataKey: 'orders', label: 'Pedidos', color: '#E8A33D', format: 'number' },
+            { dataKey: 'roas', label: 'ROAS promedio', color: '#8B5CF6', format: 'ratio' },
+          ]}
         />
 
         <SectionHeader eyebrow="Funnel" title="Funnel de Meta Ads" note="Datos del píxel de Meta, no del sitio completo" />
         <FunnelBreakdown steps={metaFunnelSteps} />
 
+        {/* Google Ads — green family, deliberately different from Meta's blue */}
         <SectionHeader eyebrow="Google Ads (PMax)" title="Indicadores clave" note={`${range.start} → ${range.end}`} />
         <KpiGrid platform="google" meta={meta} google={google} shopify={{}} blended={{}} previousGoogle={previousGoogle} />
 
-        <ComboMonthlyChart
-          data={googleMonthly}
-          label="Gasto vs. ventas generadas — Google Ads (PMax)"
-          spendLabel="Gasto"
-          salesLabel="Ventas generadas"
-          spendColor="#086eb6"
-          salesColor="#009dde"
+        <MultiMetricMonthlyChart
+          data={withMonthlyRoas(googleMonthly)}
+          label="Gasto vs. ventas atribuidas — pedidos y ROAS — Google Ads (PMax)"
+          bars={[
+            { dataKey: 'spend', label: 'Gasto', color: '#1F7A5C', format: 'currency' },
+            { dataKey: 'sales', label: 'Ventas atribuidas', color: '#34B37A', format: 'currency' },
+          ]}
+          lines={[
+            { dataKey: 'orders', label: 'Pedidos', color: '#E8A33D', format: 'number' },
+            { dataKey: 'roas', label: 'ROAS promedio', color: '#8B5CF6', format: 'ratio' },
+          ]}
         />
 
         <SectionHeader

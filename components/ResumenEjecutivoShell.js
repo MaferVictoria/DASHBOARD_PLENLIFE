@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useDateRange } from './DateRangeProvider';
 import DateRangeSelector from './DateRangeSelector';
 import KpiGrid from './KpiGrid';
-import ComboMonthlyChart from './ComboMonthlyChart';
+import MultiMetricMonthlyChart from './MultiMetricMonthlyChart';
 import PlatformComparisonTable from './PlatformComparisonTable';
 import TopStatesTable from './TopStatesTable';
 import TopProductsTable from './TopProductsTable';
@@ -21,6 +21,7 @@ const EMPTY_GOOGLE = { spend: 0, conversions: 0, conversionValue: 0, roas: 0, cp
 const EMPTY_SHOPIFY = {
   totalSales: 0,
   netSales: 0,
+  grossSales: 0,
   orders: 0,
   newCustomers: 0,
   returningCustomers: 0,
@@ -29,11 +30,13 @@ const EMPTY_SHOPIFY = {
   unknownCustomerOrders: 0,
 };
 const EMPTY_CHECKOUT_FUNNEL = { checkoutsStarted: 0, purchases: 0 };
+const EMPTY_META_FUNNEL = { pageViews: 0, addToCart: 0, checkoutInfo: 0, purchases: 0 };
 
-// Merges two {month, spend}-shaped arrays into combined ad spend, matched by
-// month LABEL (not array index) so a partial/failed fetch on one platform
-// doesn't silently misalign with the other's months.
-function mergeMonthlySpendAndSales(metaMonthly, googleMonthly, shopifyMonthly) {
+// Merges Meta+Google monthly spend, Shopify's monthly net sales, and
+// Shopify's monthly order count into one series — matched by month LABEL
+// (not array index) so a partial/failed fetch on one platform doesn't
+// silently misalign with the others' months.
+function mergeExecutiveMonthly(metaMonthly, googleMonthly, shopifyMonthly) {
   const months = monthsSoFar(new Date());
   return months.map((month) => {
     const m = metaMonthly.find((x) => x.month === month);
@@ -42,7 +45,12 @@ function mergeMonthlySpendAndSales(metaMonthly, googleMonthly, shopifyMonthly) {
     const metaSpend = m ? m.spend : null;
     const googleSpend = g ? g.spend : null;
     const spend = metaSpend === null || googleSpend === null ? null : (metaSpend ?? 0) + (googleSpend ?? 0);
-    return { month, spend, sales: s ? s.sales : null };
+    return {
+      month,
+      spend,
+      salesShopify: s ? s.sales : null,
+      orders: s ? s.orders : null,
+    };
   });
 }
 
@@ -51,6 +59,7 @@ export default function ResumenEjecutivoShell() {
   const [loading, setLoading] = useState(true);
   const [meta, setMeta] = useState(EMPTY_META);
   const [metaMonthly, setMetaMonthly] = useState([]);
+  const [metaFunnel, setMetaFunnel] = useState(EMPTY_META_FUNNEL);
   const [google, setGoogle] = useState(EMPTY_GOOGLE);
   const [googleMonthly, setGoogleMonthly] = useState([]);
   const [shopify, setShopify] = useState(EMPTY_SHOPIFY);
@@ -95,9 +104,11 @@ export default function ResumenEjecutivoShell() {
           nextErrors.meta = metaRes.error;
           setMeta(EMPTY_META);
           setMetaMonthly([]);
+          setMetaFunnel(EMPTY_META_FUNNEL);
         } else {
           setMeta(metaRes.totals);
           setMetaMonthly(metaRes.monthly);
+          if (metaRes.funnel) setMetaFunnel(metaRes.funnel);
         }
 
         if (googleRes.error) {
@@ -154,9 +165,16 @@ export default function ResumenEjecutivoShell() {
       ? computeBlended(previousMeta, previousGoogle, previousShopify)
       : null;
 
+  // Blended source, on purpose: "Visitas"/"Añadido al carrito" come from
+  // Meta's pixel (the only real signal available — Shopify's Admin API has
+  // no site-wide traffic data), while "Checkout iniciado"/"Compras" are 100%
+  // real Shopify data. Labeled clearly below so nobody mistakes the top two
+  // steps for total site traffic — they're Meta-attributed only.
   const funnelSteps = [
-    { key: 'checkoutsStarted', label: 'Checkout iniciado', value: checkoutFunnel.checkoutsStarted },
-    { key: 'purchases', label: 'Compras', value: checkoutFunnel.purchases },
+    { key: 'pageViews', label: 'Visitas a la página (Meta)', value: metaFunnel.pageViews },
+    { key: 'addToCart', label: 'Añadido al carrito (Meta)', value: metaFunnel.addToCart },
+    { key: 'checkoutsStarted', label: 'Checkout iniciado (Shopify)', value: checkoutFunnel.checkoutsStarted },
+    { key: 'purchases', label: 'Compras (Shopify)', value: checkoutFunnel.purchases },
   ];
 
   return (
@@ -188,20 +206,26 @@ export default function ResumenEjecutivoShell() {
         />
 
         <SectionHeader eyebrow="Tendencia" title="Desglose mensual (Ene → hoy)" />
-        <ComboMonthlyChart
-          data={mergeMonthlySpendAndSales(metaMonthly, googleMonthly, shopifyMonthly)}
-          label="Gasto total (Meta + Google) vs. ventas — Shopify"
-          spendLabel="Gasto total"
-          salesLabel="Ventas (Shopify)"
-          spendColor="#086eb6"
-          salesColor="#009dde"
+        <MultiMetricMonthlyChart
+          data={mergeExecutiveMonthly(metaMonthly, googleMonthly, shopifyMonthly)}
+          label="Gasto total (Meta + Google) vs. ventas netas (Shopify) — pedidos"
+          bars={[
+            { dataKey: 'spend', label: 'Gasto total', color: '#086eb6', format: 'currency' },
+            { dataKey: 'salesShopify', label: 'Ventas netas (Shopify)', color: '#0B2A45', format: 'currency' },
+          ]}
+          lines={[{ dataKey: 'orders', label: 'Pedidos', color: '#E8A33D', format: 'number' }]}
         />
 
         <SectionHeader eyebrow="Cruce de plataformas" title="Plataformas vs. Shopify" note="Comparación, no atribución" />
         <PlatformComparisonTable meta={meta} google={google} shopify={shopify} />
 
         <SectionHeader eyebrow="Comportamiento" title="Adquisición vs. Retención" />
-        <UserBehaviorPanel shopify={shopify} blended={blended} />
+        <UserBehaviorPanel
+          shopify={shopify}
+          blended={blended}
+          previousShopify={previousShopify}
+          previousBlended={previousBlended}
+        />
 
         <SectionHeader
           eyebrow="Geografía"
@@ -217,7 +241,11 @@ export default function ResumenEjecutivoShell() {
         />
         <TopProductsTable data={topProductsByMonth} />
 
-        <SectionHeader eyebrow="Funnel" title="Checkout iniciado → Compras" note="Datos reales de Shopify (Admin API)" />
+        <SectionHeader
+          eyebrow="Funnel"
+          title="Visitas → Compras"
+          note="Visitas/carrito: píxel de Meta (no todo el sitio) — Checkout/compras: datos reales de Shopify"
+        />
         <FunnelBreakdown steps={funnelSteps} />
       </main>
     </div>

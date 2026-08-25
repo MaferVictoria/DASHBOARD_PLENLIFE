@@ -5,6 +5,21 @@ import { formatCurrency, formatNumber, formatRatio } from '@/lib/format';
 // come straight from Meta's CDN (signed URLs), so this uses a plain <img>
 // instead of next/image (which would need every possible fbcdn.net
 // subdomain pre-registered in next.config.js).
+//
+// Columns per the Aug 2026 change doc: Inversión, Alcance, Impresiones,
+// Frecuencia, CTR único, Visitas a la página web, Costo por visita, Compras,
+// Valor de Compras, Costo por compra, ROAS. Wide table — scrolls
+// horizontally on narrow screens rather than wrapping/shrinking illegibly.
+function formatFrequency(value) {
+  if (value === null || value === undefined || Number.isNaN(value)) return '—';
+  return value.toFixed(2);
+}
+
+function formatCtr(value) {
+  if (value === null || value === undefined || Number.isNaN(value)) return '—';
+  return `${value.toFixed(2)}%`;
+}
+
 export default function CreativeRankingTable({ creatives }) {
   if (!creatives || creatives.length === 0) {
     return (
@@ -17,15 +32,22 @@ export default function CreativeRankingTable({ creatives }) {
   }
 
   return (
-    <div className="border border-line bg-panel">
-      <table className="w-full border-collapse text-sm">
+    <div className="overflow-x-auto border border-line bg-panel">
+      <table className="w-full min-w-[1100px] border-collapse text-sm">
         <thead>
           <tr className="rule-thick border-t-2 border-ink text-left">
             <th className="px-4 py-2 font-body text-[10px] uppercase tracking-wide text-ink/60">Miniatura</th>
             <th className="px-4 py-2 font-body text-[10px] uppercase tracking-wide text-ink/60">Concepto</th>
             <th className="px-4 py-2 font-body text-[10px] uppercase tracking-wide text-ink/60">Inversión</th>
-            <th className="px-4 py-2 font-body text-[10px] uppercase tracking-wide text-ink/60">Clics</th>
-            <th className="px-4 py-2 font-body text-[10px] uppercase tracking-wide text-ink/60">CPA</th>
+            <th className="px-4 py-2 font-body text-[10px] uppercase tracking-wide text-ink/60">Alcance</th>
+            <th className="px-4 py-2 font-body text-[10px] uppercase tracking-wide text-ink/60">Impresiones</th>
+            <th className="px-4 py-2 font-body text-[10px] uppercase tracking-wide text-ink/60">Frecuencia</th>
+            <th className="px-4 py-2 font-body text-[10px] uppercase tracking-wide text-ink/60">CTR único</th>
+            <th className="px-4 py-2 font-body text-[10px] uppercase tracking-wide text-ink/60">Visitas a la web</th>
+            <th className="px-4 py-2 font-body text-[10px] uppercase tracking-wide text-ink/60">Costo por visita</th>
+            <th className="px-4 py-2 font-body text-[10px] uppercase tracking-wide text-ink/60">Compras</th>
+            <th className="px-4 py-2 font-body text-[10px] uppercase tracking-wide text-ink/60">Valor de compras</th>
+            <th className="px-4 py-2 font-body text-[10px] uppercase tracking-wide text-ink/60">Costo por compra</th>
             <th className="px-4 py-2 font-body text-[10px] uppercase tracking-wide text-ink/60">ROAS</th>
           </tr>
         </thead>
@@ -42,7 +64,7 @@ export default function CreativeRankingTable({ creatives }) {
                   </div>
                 )}
               </td>
-              <td className="max-w-[220px] px-4 py-2.5" title={c.adName}>
+              <td className="max-w-[200px] px-4 py-2.5" title={c.adName}>
                 <p className="truncate font-medium text-ink">{c.adName}</p>
                 {c.audience && (
                   <span className="mt-0.5 inline-block font-body text-[10px] uppercase tracking-wide text-ink/40">
@@ -51,7 +73,14 @@ export default function CreativeRankingTable({ creatives }) {
                 )}
               </td>
               <td className="px-4 py-2.5 font-body tabular-nums text-ink/80">{formatCurrency(c.spend)}</td>
-              <td className="px-4 py-2.5 font-body tabular-nums text-ink/80">{formatNumber(c.clicks)}</td>
+              <td className="px-4 py-2.5 font-body tabular-nums text-ink/80">{formatNumber(c.reach)}</td>
+              <td className="px-4 py-2.5 font-body tabular-nums text-ink/80">{formatNumber(c.impressions)}</td>
+              <td className="px-4 py-2.5 font-body tabular-nums text-ink/80">{formatFrequency(c.frequency)}</td>
+              <td className="px-4 py-2.5 font-body tabular-nums text-ink/80">{formatCtr(c.uniqueCtr)}</td>
+              <td className="px-4 py-2.5 font-body tabular-nums text-ink/80">{formatNumber(c.landingPageViews)}</td>
+              <td className="px-4 py-2.5 font-body tabular-nums text-ink/80">{formatCurrency(c.costPerVisit)}</td>
+              <td className="px-4 py-2.5 font-body tabular-nums text-ink/80">{formatNumber(c.purchases)}</td>
+              <td className="px-4 py-2.5 font-body tabular-nums text-ink/80">{formatCurrency(c.purchaseValue)}</td>
               <td className="px-4 py-2.5 font-body tabular-nums text-ink/80">{formatCurrency(c.cpa)}</td>
               <td className="px-4 py-2.5 font-body font-semibold tabular-nums text-brand">{formatRatio(c.roas)}</td>
             </tr>
