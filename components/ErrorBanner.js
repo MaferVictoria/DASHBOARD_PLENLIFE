@@ -1,6 +1,6 @@
 // `errors` is an object like { meta: 'message'|null, google: ..., shopify: ... }.
 // Only non-null entries render — each page shell decides which keys it cares about.
-const LABELS = { meta: 'Meta Ads', google: 'Google Ads', shopify: 'Shopify' };
+const LABELS = { meta: 'Meta Ads', google: 'Google Ads', shopify: 'Shopify', analytics: 'Google Analytics' };
 
 export default function ErrorBanner({ errors }) {
   const entries = Object.entries(errors).filter(([, msg]) => msg);

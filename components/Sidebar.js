@@ -9,6 +9,8 @@ const NAV_ITEMS = [
   { href: '/adquisicion', label: 'Adquisición / Paid Media' },
   { href: '/ventas-clientes', label: 'Ventas y Clientes' },
   { href: '/creativos', label: 'Biblioteca de Creativos' },
+  { href: '/trafico-web', label: 'Tráfico Web' },
+  { href: '/engagement-web', label: 'Engagement Web' },
 ];
 
 export default function Sidebar() {

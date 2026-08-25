@@ -154,6 +154,43 @@ que tomé y que vale la pena que conozcas:
    "Clics". La tabla es ancha — hace scroll horizontal en pantallas
    angostas en vez de encoger las columnas hasta ser ilegibles.
 
+## Google Analytics 4 — Tráfico Web / Engagement Web (nuevo, 25 agosto 2026)
+
+Dos pestañas nuevas, 100% alimentadas por la GA4 Data API — tráfico real del
+sitio, algo que ninguna de las otras fuentes (Meta, Google Ads, Shopify)
+podía darnos.
+
+- **Conector:** `lib/connectors/ga4.js`. Autenticación con cuenta de
+  servicio (mismo patrón JWT que ya se usó para el intento de Google
+  Sheets), scope `analytics.readonly`.
+- **Variables de entorno:** `GOOGLE_ANALYTICS_CLIENT_EMAIL`,
+  `GOOGLE_ANALYTICS_PRIVATE_KEY`, `GOOGLE_ANALYTICS_PROPERTY_ID` (el ID
+  numérico de la propiedad, NO el Measurement ID que empieza con `G-`).
+- **Rutas:** `app/api/ga4/traffic/route.js` (dona de canales + 4 tablas
+  UTM) y `app/api/ga4/engagement/route.js` (KPIs, 2 gráficos mensuales,
+  funnel, tabla de detalle mensual).
+- **`app/api/analytics/route.js`** es una tercera ruta, más chica — sirve
+  solo los primeros 2 pasos del funnel de Resumen Ejecutivo (ver abajo).
+
+**Decisión de diseño importante:** las 2 gráficas mensuales de Engagement
+Web (Visitantes/Sesiones y Tasas de Conversión/ATC/Rebote) **no respetan el
+filtro de fecha de arriba** — siempre muestran el histórico completo
+disponible en GA4. Esto es explícito para la primera gráfica; para la
+segunda lo asumí por consistencia (el documento original no lo aclaraba
+para esa gráfica específica). Si prefieres que la de tasas sí responda al
+filtro, es un cambio pequeño.
+
+**El funnel de Resumen Ejecutivo se actualizó** — antes usaba el píxel de
+Meta para "Visitas"/"Carrito" (con la advertencia de que no era tráfico
+total del sitio). Ahora que GA4 está conectado, usa **tráfico real total**
+para esos 2 pasos (`sessions` y el evento `add_to_cart`), y las etiquetas ya
+dicen "(GA4)" en vez de "(Meta)" — es una mejora real de precisión, no solo
+un cambio de nombre.
+
+**Tablas ordenables** (`components/SortableTable.js`) — clic en cualquier
+encabezado de columna para ordenar (clic de nuevo invierte la dirección).
+Se usa en las 4 tablas UTM y en la tabla de detalle mensual.
+
 ## Top estados / Top productos: vuelve a ser 100% API en vivo de Shopify
 
 Historia rápida por si algo de esto reaparece en el futuro: por un momento

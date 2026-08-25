@@ -30,7 +30,7 @@ const EMPTY_SHOPIFY = {
   unknownCustomerOrders: 0,
 };
 const EMPTY_CHECKOUT_FUNNEL = { checkoutsStarted: 0, purchases: 0 };
-const EMPTY_META_FUNNEL = { pageViews: 0, addToCart: 0, checkoutInfo: 0, purchases: 0 };
+const EMPTY_SITE_FUNNEL = { pageViews: 0, addToCart: 0, checkoutInfo: 0, purchases: 0 };
 
 // Merges Meta+Google monthly spend, Shopify's monthly net sales, and
 // Shopify's monthly order count into one series — matched by month LABEL
@@ -59,7 +59,7 @@ export default function ResumenEjecutivoShell() {
   const [loading, setLoading] = useState(true);
   const [meta, setMeta] = useState(EMPTY_META);
   const [metaMonthly, setMetaMonthly] = useState([]);
-  const [metaFunnel, setMetaFunnel] = useState(EMPTY_META_FUNNEL);
+  const [siteFunnel, setSiteFunnel] = useState(EMPTY_SITE_FUNNEL);
   const [google, setGoogle] = useState(EMPTY_GOOGLE);
   const [googleMonthly, setGoogleMonthly] = useState([]);
   const [shopify, setShopify] = useState(EMPTY_SHOPIFY);
@@ -67,7 +67,7 @@ export default function ResumenEjecutivoShell() {
   const [topStatesByMonth, setTopStatesByMonth] = useState([]);
   const [topProductsByMonth, setTopProductsByMonth] = useState([]);
   const [checkoutFunnel, setCheckoutFunnel] = useState(EMPTY_CHECKOUT_FUNNEL);
-  const [errors, setErrors] = useState({ meta: null, google: null, shopify: null });
+  const [errors, setErrors] = useState({ meta: null, google: null, shopify: null, analytics: null });
   const [previousMeta, setPreviousMeta] = useState(null);
   const [previousGoogle, setPreviousGoogle] = useState(null);
   const [previousShopify, setPreviousShopify] = useState(null);
@@ -91,24 +91,30 @@ export default function ResumenEjecutivoShell() {
       fetchJSON(`/api/meta?${qs}`),
       fetchJSON(`/api/google?${qs}`),
       fetchJSON(`/api/shopify?${qs}`),
+      fetchJSON(`/api/analytics?${qs}`),
       prevQs ? fetchJSON(`/api/meta?${prevQs}`) : null,
       prevQs ? fetchJSON(`/api/google?${prevQs}`) : null,
       prevQs ? fetchJSON(`/api/shopify?${prevQs}`) : null,
       frozenQs ? fetchJSON(`/api/shopify?${frozenQs}`) : null,
     ])
-      .then(([metaRes, googleRes, shopifyRes, prevMetaRes, prevGoogleRes, prevShopifyRes, frozenRes]) => {
+      .then(([metaRes, googleRes, shopifyRes, analyticsRes, prevMetaRes, prevGoogleRes, prevShopifyRes, frozenRes]) => {
         if (cancelled) return;
-        const nextErrors = { meta: null, google: null, shopify: null };
+        const nextErrors = { meta: null, google: null, shopify: null, analytics: null };
 
         if (metaRes.error) {
           nextErrors.meta = metaRes.error;
           setMeta(EMPTY_META);
           setMetaMonthly([]);
-          setMetaFunnel(EMPTY_META_FUNNEL);
         } else {
           setMeta(metaRes.totals);
           setMetaMonthly(metaRes.monthly);
-          if (metaRes.funnel) setMetaFunnel(metaRes.funnel);
+        }
+
+        if (analyticsRes.error) {
+          nextErrors.analytics = analyticsRes.error;
+          setSiteFunnel(EMPTY_SITE_FUNNEL);
+        } else {
+          setSiteFunnel(analyticsRes.funnel || EMPTY_SITE_FUNNEL);
         }
 
         if (googleRes.error) {
@@ -165,14 +171,13 @@ export default function ResumenEjecutivoShell() {
       ? computeBlended(previousMeta, previousGoogle, previousShopify)
       : null;
 
-  // Blended source, on purpose: "Visitas"/"Añadido al carrito" come from
-  // Meta's pixel (the only real signal available — Shopify's Admin API has
-  // no site-wide traffic data), while "Checkout iniciado"/"Compras" are 100%
-  // real Shopify data. Labeled clearly below so nobody mistakes the top two
-  // steps for total site traffic — they're Meta-attributed only.
+  // Now backed by REAL site-wide traffic from GA4 (sessions + add_to_cart),
+  // not Meta-pixel-only data like before GA4 was connected — "Visitas" here
+  // is genuinely total site traffic now, so the label no longer needs the
+  // "(no todo el sitio)" caveat that applied when this was Meta-only.
   const funnelSteps = [
-    { key: 'pageViews', label: 'Visitas a la página (Meta)', value: metaFunnel.pageViews },
-    { key: 'addToCart', label: 'Añadido al carrito (Meta)', value: metaFunnel.addToCart },
+    { key: 'pageViews', label: 'Visitas a la página (GA4)', value: siteFunnel.pageViews },
+    { key: 'addToCart', label: 'Añadido al carrito (GA4)', value: siteFunnel.addToCart },
     { key: 'checkoutsStarted', label: 'Checkout iniciado (Shopify)', value: checkoutFunnel.checkoutsStarted },
     { key: 'purchases', label: 'Compras (Shopify)', value: checkoutFunnel.purchases },
   ];
@@ -244,7 +249,7 @@ export default function ResumenEjecutivoShell() {
         <SectionHeader
           eyebrow="Funnel"
           title="Visitas → Compras"
-          note="Visitas/carrito: píxel de Meta (no todo el sitio) — Checkout/compras: datos reales de Shopify"
+          note="Visitas/carrito: Google Analytics 4 — Checkout/compras: datos reales de Shopify"
         />
         <FunnelBreakdown steps={funnelSteps} />
       </main>
