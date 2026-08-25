@@ -1,11 +1,12 @@
 import { formatCurrency } from '@/lib/format';
 
 export default function TopProductsTable({ data }) {
+  const colsClass = data.length >= 2 ? 'sm:grid-cols-2' : 'sm:grid-cols-1';
   return (
-    <div className="grid gap-px border border-line bg-line sm:grid-cols-2">
-      {data.map(({ month, products }) => (
-        <div key={month} className="bg-panel p-4">
-          <p className="mb-2 font-body text-[10px] uppercase tracking-[0.14em] text-ink/60">{month}</p>
+    <div className={`grid gap-px border border-line bg-line ${colsClass}`}>
+      {data.map(({ label, products }) => (
+        <div key={label} className="bg-panel p-4">
+          <p className="mb-2 font-body text-[10px] uppercase tracking-[0.14em] text-ink/60">{label}</p>
           <ol className="space-y-1.5">
             {products.map((p, i) => (
               <li key={p.product} className="flex items-center justify-between gap-3 text-sm">

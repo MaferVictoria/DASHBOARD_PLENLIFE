@@ -97,26 +97,37 @@ Tipografía: **Poppins** en todo.
 Si un conector no tiene credenciales configuradas, cae a datos de ejemplo
 automáticamente — pero en Vercel, con las variables puestas, todo jala real.
 
-## Top estados / Top productos: fuente = Google Sheet, no la API de Shopify
+## Top estados / Top productos: vuelve a ser 100% API en vivo de Shopify
 
-Decisión deliberada, confirmada con el cliente: estas dos vistas (en Resumen
-Ejecutivo) leen de un Google Sheet que Plenlife mantiene a mano (bajando un
-reporte directo de Shopify), en vez de calcularse en vivo desde la Orders
-API. El resto del dashboard (KPIs, mensuales, funnel, clientes nuevos) sigue
-100% en la API en vivo de Shopify — esto es exclusivo de esas dos tablas.
+Historia rápida por si algo de esto reaparece en el futuro: por un momento
+(finales de agosto 2026) esto leyó de un Google Sheet que Plenlife
+mantenía a mano. Se revirtió porque compartir ese Sheet con la cuenta de
+servicio necesaria hubiera requerido exponer el archivo completo — y ese
+archivo tiene más de 30 pestañas, varias con información sensible
+(presupuestos, utilidad mensual, costos de producto) que no tenía nada que
+ver con este dashboard. El cliente prefirió quedarse con la API en vivo de
+Shopify, que ya estaba conectada y no requiere compartir nada adicional.
 
-- **Conector:** `lib/connectors/googleSheets.js`
-- **Autenticación:** cuenta de servicio de Google (JWT firmado con la
-  llave privada, sin pantalla de consentimiento de usuario — ver
-  `.env.example` para las 4 variables necesarias)
-- **Cómo lee la hoja:** cada fila se valida con `isDataRow()` (debe tener
-  nombre de producto y un número de mes válido en la columna Q) antes de
-  usarse — así se saltan automáticamente las filas de encabezado de sección
-  ("ENERO", "FEBRERO", etc.) sin necesidad de saber en qué fila exacta están
-- **Si cambia la estructura de columnas de la hoja:** hay que actualizar el
-  objeto `COL` al inicio de `googleSheets.js` — el código lee por posición
-  de columna, no por nombre de encabezado, así que un reacomodo de columnas
-  en el Sheet rompe silenciosamente esto si no se actualiza ese mapeo.
+Estado actual:
+
+- **Conector:** `lib/connectors/shopify.js` — funciones
+  `getShopifyTopStatesByMonth(start, end)` y `getShopifyTopProductsByMonth(start, end)`.
+- **Fuente:** pedidos reales de Shopify en el rango exacto seleccionado
+  (`shippingAddress.province` para estados, `lineItems` para productos),
+  excluyendo automáticamente pedidos cancelados y de prueba — mismo filtro
+  que ya se aplica a todo lo demás en este conector.
+- **Rango de fechas:** respeta el filtro de arriba (no está fijo a ningún
+  mes). El resultado es un solo top 5 del periodo exacto elegido, etiquetado
+  con las fechas (`2026-08-01 → 2026-08-16`, por ejemplo) — mismo formato
+  que se usó brevemente con el Google Sheet, así que la UI no tuvo que
+  cambiar al revertir esto.
+- **Eficiencia:** como `getShopifyTotals()` y estas dos funciones piden
+  pedidos del mismo rango en la misma petición, hay una memoización
+  compartida (`getOrdersForRangeOnce`) para no traer los mismos pedidos de
+  Shopify tres veces.
+- **Aplican las mismas 2 limitaciones ya documentadas más abajo:** el límite
+  de 60 días de historial de Shopify, y que los reembolsos no siempre se
+  reflejan bien en los campos que usamos.
 
 ## El funnel de "checkout iniciado → compras" (Resumen Ejecutivo)
 

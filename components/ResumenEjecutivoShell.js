@@ -186,10 +186,10 @@ export default function ResumenEjecutivoShell() {
         <SectionHeader eyebrow="Comportamiento" title="Adquisición vs. Retención" />
         <UserBehaviorPanel shopify={shopify} blended={blended} />
 
-        <SectionHeader eyebrow="Geografía" title="Top estados por mes" note="Top 5 — mes actual y anterior (fijo, no cambia con el filtro de arriba)" />
+        <SectionHeader eyebrow="Geografía" title="Top estados" note="Top 5 del periodo seleccionado arriba" />
         <TopStatesTable data={topStatesByMonth} />
 
-        <SectionHeader eyebrow="Catálogo" title="Top productos por mes" note="Top 5 — mes actual y anterior (fijo, no cambia con el filtro de arriba)" />
+        <SectionHeader eyebrow="Catálogo" title="Top productos" note="Top 5 del periodo seleccionado arriba" />
         <TopProductsTable data={topProductsByMonth} />
 
         <SectionHeader eyebrow="Funnel" title="Checkout iniciado → Compras" note="Datos reales de Shopify (Admin API)" />
