@@ -1,4 +1,4 @@
-import { formatCurrency } from '@/lib/format';
+import { formatCurrency, formatNumber } from '@/lib/format';
 
 export default function TopStatesTable({ data }) {
   const colsClass = data.length >= 2 ? 'sm:grid-cols-2' : 'sm:grid-cols-1';
@@ -12,7 +12,12 @@ export default function TopStatesTable({ data }) {
               <li key={s.state} className="flex items-center justify-between text-sm">
                 <span className="flex items-center gap-2 text-ink/80">
                   <span className="font-body text-xs text-ink/40">{String(i + 1).padStart(2, '0')}</span>
-                  {s.state}
+                  <span>
+                    {s.state}
+                    <span className="ml-1.5 font-body text-xs text-ink/40">
+                      ({formatNumber(s.orders)} {s.orders === 1 ? 'pedido' : 'pedidos'})
+                    </span>
+                  </span>
                 </span>
                 <span className="font-body tabular-nums text-ink/80">{formatCurrency(s.sales)}</span>
               </li>
