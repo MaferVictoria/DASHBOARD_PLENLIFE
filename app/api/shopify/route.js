@@ -17,12 +17,24 @@ export async function GET(request) {
   // needed for a comparison card, and are the expensive part of this route
   // now that it scans real Shopify orders.
   const totalsOnly = searchParams.get('totalsOnly') === '1';
+  // Set by the "mes anterior congelado" comparison column on Resumen
+  // Ejecutivo — the opposite of totalsOnly: skip totals/monthly/funnel/etc.
+  // and ONLY compute top estados/productos for this range.
+  const onlyTop = searchParams.get('onlyTop') === '1';
 
   if (!start || !end) {
     return NextResponse.json({ error: 'Missing start/end query params' }, { status: 400 });
   }
 
   try {
+    if (onlyTop) {
+      const [topStatesByMonth, topProductsByMonth] = await Promise.all([
+        getShopifyTopStatesByMonth(start, end),
+        getShopifyTopProductsByMonth(start, end),
+      ]);
+      return NextResponse.json({ range: { start, end }, topStatesByMonth, topProductsByMonth });
+    }
+
     const totals = await getShopifyTotals(start, end);
 
     if (totalsOnly) {
