@@ -23,23 +23,46 @@ const COLUMNS = [
 // rows of the CURRENT sort show by default, with a "Ver los N restantes"
 // toggle below to reveal the rest inline. Omit it (monthly detail table)
 // to always show everything.
-export default function SortableTable({ data, keyLabel = 'Valor', error, initialLimit = null }) {
-  const [sortKey, setSortKey] = useState('sesiones');
-  const [sortDir, setSortDir] = useState('desc');
+//
+// `defaultSortKey`/`defaultSortDir`: what the table sorts by BEFORE anyone
+// clicks a header. UTM tables want "Sesiones" desc (biggest first);
+// the monthly detail table wants chronological, most recent first —
+// pass `defaultSortKey="key"` `defaultSortDir="desc"` for that case.
+//
+// `dateSortField`: the monthly detail table's displayed "Mes" column shows
+// a label like "Feb 2026", which sorts WRONG alphabetically (Abr before
+// Ago before Dic before Ene...). Pass the name of a separate, real
+// chronologically-sortable field (e.g. "monthKey": "202602") and clicking/
+// defaulting to the "key" column will sort by THAT field instead, while
+// still displaying the friendly label. Omit for tables where the "key"
+// column is just a plain dimension name (UTM tables) — plain alphabetical
+// sort is correct there.
+export default function SortableTable({
+  data,
+  keyLabel = 'Valor',
+  error,
+  initialLimit = null,
+  defaultSortKey = 'sesiones',
+  defaultSortDir = 'desc',
+  dateSortField = null,
+}) {
+  const [sortKey, setSortKey] = useState(defaultSortKey);
+  const [sortDir, setSortDir] = useState(defaultSortDir);
   const [expanded, setExpanded] = useState(false);
 
   const sorted = useMemo(() => {
     const copy = [...(data || [])];
+    const field = sortKey === 'key' && dateSortField ? dateSortField : sortKey;
     copy.sort((a, b) => {
-      const av = a[sortKey];
-      const bv = b[sortKey];
+      const av = a[field];
+      const bv = b[field];
       if (typeof av === 'string') {
         return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
       }
       return sortDir === 'asc' ? av - bv : bv - av;
     });
     return copy;
-  }, [data, sortKey, sortDir]);
+  }, [data, sortKey, sortDir, dateSortField]);
 
   const hasMore = initialLimit && sorted.length > initialLimit;
   const visible = hasMore && !expanded ? sorted.slice(0, initialLimit) : sorted;
