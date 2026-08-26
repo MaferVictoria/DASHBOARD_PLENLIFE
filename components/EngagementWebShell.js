@@ -171,7 +171,13 @@ export default function EngagementWebShell() {
             </button>
           ))}
         </div>
-        <SortableTable data={filteredDetail} keyLabel="Mes" />
+        <SortableTable
+          data={filteredDetail}
+          keyLabel="Mes"
+          defaultSortKey="key"
+          defaultSortDir="desc"
+          dateSortField="monthKey"
+        />
       </main>
     </div>
   );
