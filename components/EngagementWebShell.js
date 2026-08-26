@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useDateRange } from './DateRangeProvider';
 import DateRangeSelector from './DateRangeSelector';
 import SectionHeader from './SectionHeader';
@@ -16,7 +16,8 @@ import { computeChange } from '@/lib/metrics';
 import { formatNumber, formatPercent, formatDuration, formatChangeText } from '@/lib/format';
 
 const EMPTY_KPIS = {
-  visitantes: 0,
+  usuariosTotales: 0,
+  usuariosNuevos: 0,
   sesiones: 0,
   tasaConversion: 0,
   tasaRebote: 0,
@@ -26,8 +27,8 @@ const EMPTY_KPIS = {
   checkoutsCompletados: 0,
 };
 
-// Same "pick the largest divisor <= 6" trick as KpiGrid.js, so 8 cards land
-// on a clean 4-column grid (2 full rows) instead of leaving empty cells.
+// Same "pick the largest divisor <= 6" trick as KpiGrid.js, so N cards land
+// on a clean grid instead of leaving empty cells.
 function bestColumnCount(count) {
   for (let cols = 6; cols >= 2; cols--) {
     if (count % cols === 0) return cols;
@@ -50,6 +51,7 @@ export default function EngagementWebShell() {
   const [monthlyRates, setMonthlyRates] = useState([]);
   const [funnel, setFunnel] = useState([]);
   const [monthlyDetail, setMonthlyDetail] = useState([]);
+  const [detailYear, setDetailYear] = useState(new Date().getFullYear());
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -86,7 +88,8 @@ export default function EngagementWebShell() {
   }, [range.start, range.end]);
 
   const cards = [
-    buildCard('Visitantes', kpis.visitantes, previousKpis?.visitantes, formatNumber),
+    buildCard('Usuarios Totales', kpis.usuariosTotales, previousKpis?.usuariosTotales, formatNumber),
+    buildCard('Usuarios Nuevos', kpis.usuariosNuevos, previousKpis?.usuariosNuevos, formatNumber),
     buildCard('Sesiones Totales', kpis.sesiones, previousKpis?.sesiones, formatNumber),
     buildCard('Tasa de Conversión', kpis.tasaConversion, previousKpis?.tasaConversion, formatPercent),
     buildCard('Tasa de Rebote', kpis.tasaRebote, previousKpis?.tasaRebote, formatPercent),
@@ -96,6 +99,14 @@ export default function EngagementWebShell() {
     buildCard('Checkouts Completados', kpis.checkoutsCompletados, previousKpis?.checkoutsCompletados, formatNumber),
   ];
   const lgColsClass = GRID_COLS_CLASS[bestColumnCount(cards.length)] || 'lg:grid-cols-4';
+
+  // Years available in the fetched detail table, newest first — the
+  // dropdown only ever shows years that actually have data.
+  const availableYears = useMemo(() => {
+    const years = Array.from(new Set(monthlyDetail.map((row) => row.year))).sort((a, b) => b - a);
+    return years.length > 0 ? years : [new Date().getFullYear()];
+  }, [monthlyDetail]);
+  const filteredDetail = monthlyDetail.filter((row) => row.year === detailYear);
 
   return (
     <div className="mx-auto max-w-6xl px-4 pb-24 pt-6 sm:px-6">
@@ -121,30 +132,46 @@ export default function EngagementWebShell() {
 
         <SectionHeader
           eyebrow="Tendencia"
-          title="Visitantes y Sesiones — por mes"
-          note="Histórico completo — no cambia con el filtro de arriba"
+          title="Usuarios y Sesiones — por mes"
+          note="Últimos 12 meses — no cambia con el filtro de arriba"
         />
         <MultiMetricMonthlyChart
           data={monthlyVisitorsSessions}
-          label="Visitantes y sesiones por mes"
+          label="Usuarios y sesiones por mes"
           bars={[
             { dataKey: 'sessions', label: 'Sesiones', color: '#086eb6', format: 'number' },
-            { dataKey: 'visitors', label: 'Visitantes', color: '#0B2A45', format: 'number' },
+            { dataKey: 'visitors', label: 'Usuarios Totales', color: '#0B2A45', format: 'number' },
           ]}
         />
 
         <SectionHeader
           eyebrow="Tendencia"
           title="Tasas de Conversión, ATC y Rebote"
-          note="Histórico completo — no cambia con el filtro de arriba"
+          note="Últimos 12 meses — no cambia con el filtro de arriba"
         />
         <RatesMonthlyChart data={monthlyRates} />
 
         <SectionHeader eyebrow="Funnel" title="Customer Journey" note={`${range.start} → ${range.end}`} />
         <CustomerJourneyFunnel steps={funnel} />
 
-        <SectionHeader eyebrow="Detalle" title="Tabla mensual" note="Histórico completo, 8 métricas" />
-        <SortableTable data={monthlyDetail} keyLabel="Mes" />
+        <SectionHeader eyebrow="Detalle" title="Tabla mensual" note="8 métricas" />
+        <div className="mb-3 flex flex-wrap gap-2">
+          {availableYears.map((y) => (
+            <button
+              key={y}
+              onClick={() => setDetailYear(y)}
+              className={[
+                'rounded-full border px-3 py-1.5 font-body text-xs uppercase tracking-wide transition-colors',
+                detailYear === y
+                  ? 'border-brand bg-brand text-white'
+                  : 'border-line bg-panel text-ink/70 hover:border-brand/50',
+              ].join(' ')}
+            >
+              {y}
+            </button>
+          ))}
+        </div>
+        <SortableTable data={filteredDetail} keyLabel="Mes" />
       </main>
     </div>
   );

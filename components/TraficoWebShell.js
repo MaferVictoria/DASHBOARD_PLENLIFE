@@ -27,7 +27,7 @@ function ChannelSourceTable({ rows }) {
           <tr className="rule-thick border-t-2 border-ink text-left">
             <th className="px-4 py-2 font-body text-[10px] uppercase tracking-wide text-ink/60">Fuente</th>
             <th className="px-4 py-2 font-body text-[10px] uppercase tracking-wide text-ink/60">Sesiones</th>
-            <th className="px-4 py-2 font-body text-[10px] uppercase tracking-wide text-ink/60">Visitantes</th>
+            <th className="px-4 py-2 font-body text-[10px] uppercase tracking-wide text-ink/60">Usuarios Totales</th>
             <th className="px-4 py-2 font-body text-[10px] uppercase tracking-wide text-ink/60">% del total</th>
           </tr>
         </thead>
@@ -36,7 +36,7 @@ function ChannelSourceTable({ rows }) {
             <tr key={r.source} className="border-t border-line">
               <td className="px-4 py-2.5 font-medium text-ink">{r.source}</td>
               <td className="px-4 py-2.5 font-body tabular-nums text-ink/80">{formatNumber(r.sessions)}</td>
-              <td className="px-4 py-2.5 font-body tabular-nums text-ink/80">{formatNumber(r.users)}</td>
+              <td className="px-4 py-2.5 font-body tabular-nums text-ink/80">{formatNumber(r.usuariosTotales)}</td>
               <td className="px-4 py-2.5 font-body tabular-nums text-ink/80">{r.pct.toFixed(1)}%</td>
             </tr>
           ))}
@@ -118,18 +118,18 @@ export default function TraficoWebShell() {
         <SectionHeader
           eyebrow="UTM"
           title="Fuente / Medio de la Sesión"
-          note="8 métricas — clic en un encabezado para ordenar"
+          note="Top 10 — clic en un encabezado para ordenar, 'Ver todos' para el resto"
         />
-        <SortableTable data={utm.sourceMedium} error={utmErrors.sourceMedium} keyLabel="Fuente / Medio" />
+        <SortableTable data={utm.sourceMedium} error={utmErrors.sourceMedium} keyLabel="Fuente / Medio" initialLimit={10} />
 
         <SectionHeader eyebrow="UTM" title="Campaña de la Sesión" />
-        <SortableTable data={utm.campaign} error={utmErrors.campaign} keyLabel="Campaña" />
+        <SortableTable data={utm.campaign} error={utmErrors.campaign} keyLabel="Campaña" initialLimit={10} />
 
         <SectionHeader eyebrow="UTM" title="Fuente de la Sesión" />
-        <SortableTable data={utm.source} error={utmErrors.source} keyLabel="Fuente" />
+        <SortableTable data={utm.source} error={utmErrors.source} keyLabel="Fuente" initialLimit={10} />
 
         <SectionHeader eyebrow="UTM" title="Contenido de la Sesión" note="utm_content" />
-        <SortableTable data={utm.adContent} error={utmErrors.adContent} keyLabel="Contenido" />
+        <SortableTable data={utm.adContent} error={utmErrors.adContent} keyLabel="Contenido" initialLimit={10} />
       </main>
     </div>
   );
