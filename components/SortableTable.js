@@ -19,6 +19,12 @@ const COLUMNS = [
 // 8-metric shape (+ one dimension "key" column) — one sortable component,
 // click any header to sort by it (click again to flip direction).
 //
+// Every header shows a small sort indicator now (not just the active one):
+// a faint neutral "⇅" on columns you haven't sorted by, and a bold ▲/▼ in
+// brand color on the active one. Before, only the active column showed
+// anything at all, which made it easy to miss that every column is
+// clickable and toggles ascending/descending on repeat clicks.
+//
 // `initialLimit`: when set (e.g. 10 for the 4 UTM tables), only the top N
 // rows of the CURRENT sort show by default, with a "Ver los N restantes"
 // toggle below to reveal the rest inline. Omit it (monthly detail table)
@@ -98,16 +104,30 @@ export default function SortableTable({
         <table className="w-full min-w-[900px] border-collapse text-sm">
           <thead>
             <tr className="rule-thick border-t-2 border-ink text-left">
-              {COLUMNS.map((col) => (
-                <th
-                  key={col.key}
-                  onClick={() => toggleSort(col.key)}
-                  className="cursor-pointer select-none whitespace-nowrap px-4 py-2 font-body text-[10px] uppercase tracking-wide text-ink/60 hover:text-brand"
-                >
-                  {col.key === 'key' ? keyLabel : col.label}
-                  {sortKey === col.key && <span className="ml-1">{sortDir === 'asc' ? '▲' : '▼'}</span>}
-                </th>
-              ))}
+              {COLUMNS.map((col) => {
+                const isActive = sortKey === col.key;
+                return (
+                  <th
+                    key={col.key}
+                    onClick={() => toggleSort(col.key)}
+                    title="Clic para ordenar — clic de nuevo para invertir"
+                    className="group cursor-pointer select-none whitespace-nowrap px-4 py-2 font-body text-[10px] uppercase tracking-wide text-ink/60 hover:text-brand"
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      {col.key === 'key' ? keyLabel : col.label}
+                      <span
+                        className={
+                          isActive
+                            ? 'text-brand'
+                            : 'text-ink/25 transition-colors group-hover:text-ink/50'
+                        }
+                      >
+                        {isActive ? (sortDir === 'asc' ? '▲' : '▼') : '⇅'}
+                      </span>
+                    </span>
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
