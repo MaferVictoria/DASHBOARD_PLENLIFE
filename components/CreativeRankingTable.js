@@ -1,3 +1,6 @@
+'use client';
+
+import { useState, useMemo } from 'react';
 import { formatCurrency, formatNumber, formatRatio } from '@/lib/format';
 
 // Top 3-5 ads by ROAS, with thumbnails. Meta-only — Google PMax doesn't
@@ -6,10 +9,8 @@ import { formatCurrency, formatNumber, formatRatio } from '@/lib/format';
 // instead of next/image (which would need every possible fbcdn.net
 // subdomain pre-registered in next.config.js).
 //
-// Columns per the Aug 2026 change doc: Inversión, Alcance, Impresiones,
-// Frecuencia, CTR único, Visitas a la página web, Costo por visita, Compras,
-// Valor de Compras, Costo por compra, ROAS. Wide table — scrolls
-// horizontally on narrow screens rather than wrapping/shrinking illegibly.
+// Wide table — scrolls horizontally on narrow screens rather than wrapping/
+// shrinking illegibly.
 function formatFrequency(value) {
   if (value === null || value === undefined || Number.isNaN(value)) return '—';
   return value.toFixed(2);
@@ -20,7 +21,56 @@ function formatCtr(value) {
   return `${value.toFixed(2)}%`;
 }
 
+// Every column except Miniatura is sortable — click a header to sort by it
+// (defaults to descending on a new column), click the same header again to
+// flip direction. Same "⇅ on every column, ▲/▼ on the active one" indicator
+// convention as SortableTable.js, so this reads consistently with the rest
+// of the dashboard's tables.
+const SORTABLE_COLUMNS = [
+  { key: 'adName', label: 'Concepto' },
+  { key: 'spend', label: 'Inversión' },
+  { key: 'reach', label: 'Alcance' },
+  { key: 'impressions', label: 'Impresiones' },
+  { key: 'frequency', label: 'Frecuencia' },
+  { key: 'uniqueCtr', label: 'CTR único' },
+  { key: 'landingPageViews', label: 'Visitas a la web' },
+  { key: 'costPerVisit', label: 'Costo por visita' },
+  { key: 'purchases', label: 'Compras' },
+  { key: 'purchaseValue', label: 'Valor de compras' },
+  { key: 'cpa', label: 'Costo por compra' },
+  { key: 'roas', label: 'ROAS' },
+];
+
 export default function CreativeRankingTable({ creatives }) {
+  const [sortKey, setSortKey] = useState('roas');
+  const [sortDir, setSortDir] = useState('desc');
+
+  const sorted = useMemo(() => {
+    const copy = [...(creatives || [])];
+    copy.sort((a, b) => {
+      const av = a[sortKey];
+      const bv = b[sortKey];
+      if (typeof av === 'string') {
+        return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+      }
+      // Nulls (e.g. costPerVisit with zero landing page views) sort last
+      // regardless of direction, instead of throwing NaN comparisons off.
+      const an = av === null || av === undefined ? -Infinity : av;
+      const bn = bv === null || bv === undefined ? -Infinity : bv;
+      return sortDir === 'asc' ? an - bn : bn - an;
+    });
+    return copy;
+  }, [creatives, sortKey, sortDir]);
+
+  function toggleSort(key) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDir('desc');
+    }
+  }
+
   if (!creatives || creatives.length === 0) {
     return (
       <div className="border border-line bg-panel p-6 text-center">
@@ -37,22 +87,32 @@ export default function CreativeRankingTable({ creatives }) {
         <thead>
           <tr className="rule-thick border-t-2 border-ink text-left">
             <th className="px-4 py-2 font-body text-[10px] uppercase tracking-wide text-ink/60">Miniatura</th>
-            <th className="px-4 py-2 font-body text-[10px] uppercase tracking-wide text-ink/60">Concepto</th>
-            <th className="px-4 py-2 font-body text-[10px] uppercase tracking-wide text-ink/60">Inversión</th>
-            <th className="px-4 py-2 font-body text-[10px] uppercase tracking-wide text-ink/60">Alcance</th>
-            <th className="px-4 py-2 font-body text-[10px] uppercase tracking-wide text-ink/60">Impresiones</th>
-            <th className="px-4 py-2 font-body text-[10px] uppercase tracking-wide text-ink/60">Frecuencia</th>
-            <th className="px-4 py-2 font-body text-[10px] uppercase tracking-wide text-ink/60">CTR único</th>
-            <th className="px-4 py-2 font-body text-[10px] uppercase tracking-wide text-ink/60">Visitas a la web</th>
-            <th className="px-4 py-2 font-body text-[10px] uppercase tracking-wide text-ink/60">Costo por visita</th>
-            <th className="px-4 py-2 font-body text-[10px] uppercase tracking-wide text-ink/60">Compras</th>
-            <th className="px-4 py-2 font-body text-[10px] uppercase tracking-wide text-ink/60">Valor de compras</th>
-            <th className="px-4 py-2 font-body text-[10px] uppercase tracking-wide text-ink/60">Costo por compra</th>
-            <th className="px-4 py-2 font-body text-[10px] uppercase tracking-wide text-ink/60">ROAS</th>
+            {SORTABLE_COLUMNS.map((col) => {
+              const isActive = sortKey === col.key;
+              return (
+                <th
+                  key={col.key}
+                  onClick={() => toggleSort(col.key)}
+                  title="Clic para ordenar — clic de nuevo para invertir"
+                  className="group cursor-pointer select-none whitespace-nowrap px-4 py-2 font-body text-[10px] uppercase tracking-wide text-ink/60 hover:text-brand"
+                >
+                  <span className="inline-flex items-center gap-1">
+                    {col.label}
+                    <span
+                      className={
+                        isActive ? 'text-brand' : 'text-ink/25 transition-colors group-hover:text-ink/50'
+                      }
+                    >
+                      {isActive ? (sortDir === 'asc' ? '▲' : '▼') : '⇅'}
+                    </span>
+                  </span>
+                </th>
+              );
+            })}
           </tr>
         </thead>
         <tbody>
-          {creatives.map((c) => (
+          {sorted.map((c) => (
             <tr key={c.adId} className="border-t border-line">
               <td className="px-4 py-2.5">
                 {c.thumbnailUrl ? (
