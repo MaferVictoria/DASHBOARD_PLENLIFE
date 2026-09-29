@@ -8,6 +8,7 @@ import MultiMetricMonthlyChart from './MultiMetricMonthlyChart';
 import FunnelBreakdown from './FunnelBreakdown';
 import SectionHeader from './SectionHeader';
 import ErrorBanner from './ErrorBanner';
+import PaidMediaBreakdowns from './PaidMediaBreakdowns';
 import { fetchJSON } from '@/lib/fetchJSON';
 import { getPreviousRange } from '@/lib/dateRanges';
 
@@ -165,6 +166,9 @@ export default function AdquisicionShell() {
           note="Depende de cómo estén configuradas tus conversiones"
         />
         <FunnelBreakdown steps={googleFunnelSteps} />
+
+        {/* Desglose de gasto por estado/ciudad/edad/género — Meta y Google (agregado 26 ago 2026) */}
+        <PaidMediaBreakdowns range={range} />
       </main>
     </div>
   );
