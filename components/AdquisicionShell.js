@@ -8,7 +8,7 @@ import MultiMetricMonthlyChart from './MultiMetricMonthlyChart';
 import FunnelBreakdown from './FunnelBreakdown';
 import SectionHeader from './SectionHeader';
 import ErrorBanner from './ErrorBanner';
-import PaidMediaBreakdowns from './PaidMediaBreakdowns';
+import { MetaAudienceBreakdown, GoogleLocationBreakdown } from './PaidMediaBreakdowns';
 import { fetchJSON } from '@/lib/fetchJSON';
 import { getPreviousRange } from '@/lib/dateRanges';
 
@@ -140,6 +140,9 @@ export default function AdquisicionShell() {
           ]}
         />
 
+        {/* Desglose de Meta, justo antes del funnel de Meta */}
+        <MetaAudienceBreakdown range={range} />
+
         <SectionHeader eyebrow="Funnel" title="Funnel de Meta Ads" note="Datos del píxel de Meta, no del sitio completo" />
         <FunnelBreakdown steps={metaFunnelSteps} />
 
@@ -160,15 +163,15 @@ export default function AdquisicionShell() {
           ]}
         />
 
+        {/* Desglose de Google, justo antes del funnel de Google */}
+        <GoogleLocationBreakdown range={range} />
+
         <SectionHeader
           eyebrow="Funnel"
           title="Funnel de Google Ads"
           note="Depende de cómo estén configuradas tus conversiones"
         />
         <FunnelBreakdown steps={googleFunnelSteps} />
-
-        {/* Desglose de gasto por estado/ciudad/edad/género — Meta y Google (agregado 26 ago 2026) */}
-        <PaidMediaBreakdowns range={range} />
       </main>
     </div>
   );
