@@ -62,34 +62,14 @@ function aggregateBy(rows, keyField) {
   return Object.values(totals).map((t) => ({ ...t, roas: t.spend > 0 ? t.revenue / t.spend : 0 }));
 }
 
-function MiniStatCard({ label, value }) {
-  return (
-    <div className="border-t-2 border-ink px-2.5 py-1.5">
-      <p className="font-body text-[9px] uppercase tracking-wide text-ink/50">{label}</p>
-      <p className="font-body text-base font-semibold tabular-nums text-ink">{value}</p>
-    </div>
-  );
-}
-
-// One card = one breakdown: a small "ficha de resultados" row (aggregate
-// totals across ALL rows, not just the top 5) + the metric toggle (only
-// when the underlying data actually has more than spend to show) + the
-// donut itself.
-function BreakdownCard({ data, title, note, error, statKeys = ['spend', 'purchases', 'roas'], showMetricToggle = true }) {
+// One card = one breakdown: the metric toggle (only when the underlying
+// data actually has more than spend to show) + the donut + its legend.
+// No summary stat row anymore (removed per feedback — just the chart and
+// its breakdown, nothing else).
+function BreakdownCard({ data, title, note, error, showMetricToggle = true }) {
   const availableOptions = showMetricToggle ? METRIC_OPTIONS : METRIC_OPTIONS.slice(0, 1);
   const [metric, setMetric] = useState(availableOptions[0].key);
   const activeOption = availableOptions.find((m) => m.key === metric) || availableOptions[0];
-
-  const totals = useMemo(() => {
-    const spend = (data || []).reduce((s, d) => s + d.spend, 0);
-    const visits = (data || []).reduce((s, d) => s + d.visits, 0);
-    const purchases = (data || []).reduce((s, d) => s + d.purchases, 0);
-    const revenue = (data || []).reduce((s, d) => s + d.revenue, 0);
-    return { spend, visits, purchases, roas: spend > 0 ? revenue / spend : 0 };
-  }, [data]);
-
-  const STAT_LABELS = { spend: 'Inversión total', visits: 'Visitas', purchases: 'Compras', roas: 'ROAS' };
-  const STAT_FORMAT = { spend: formatCurrency, visits: formatNumber, purchases: formatNumber, roas: formatRatio };
 
   const chartData = useMemo(() => buildTopFiveWithOthers(data, metric), [data, metric]);
   const total = chartData.reduce((s, d) => s + d.value, 0);
@@ -100,14 +80,6 @@ function BreakdownCard({ data, title, note, error, statKeys = ['spend', 'purchas
         <p className="font-body text-[10px] uppercase tracking-[0.14em] text-ink/60">{title}</p>
         {note && <p className="mt-0.5 font-body text-[10px] text-ink/40">{note}</p>}
       </div>
-
-      {!error && data && data.length > 0 && (
-        <div className={`mb-4 grid gap-px border border-line bg-line grid-cols-${statKeys.length}`}>
-          {statKeys.map((key) => (
-            <MiniStatCard key={key} label={STAT_LABELS[key]} value={STAT_FORMAT[key](totals[key])} />
-          ))}
-        </div>
-      )}
 
       {showMetricToggle && !error && data && data.length > 0 && (
         <div className="mb-3 flex flex-wrap gap-1.5">
@@ -172,89 +144,107 @@ function BreakdownCard({ data, title, note, error, statKeys = ['spend', 'purchas
 }
 
 const EMPTY_META = { geo: [], demographics: [] };
-const EMPTY_GOOGLE = { byRegion: [], byCity: [] };
 
-// Self-contained: fetches its own data and renders everything — integrated
-// into AdquisicionShell.js via a single <PaidMediaBreakdowns range={range} />.
-export default function PaidMediaBreakdowns({ range }) {
+// Fetches ONLY Meta's breakdown data — placed right before Meta's funnel in
+// AdquisicionShell.js (split from Google's version so each can sit in its
+// own channel's section, per the client's request).
+export function MetaAudienceBreakdown({ range }) {
   const [meta, setMeta] = useState(EMPTY_META);
-  const [google, setGoogle] = useState(EMPTY_GOOGLE);
-  const [errors, setErrors] = useState({ meta: null, google: null });
+  const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    const qs = `start=${range.start}&end=${range.end}`;
-
-    Promise.all([fetchJSON(`/api/meta/breakdowns?${qs}`), fetchJSON(`/api/google/breakdowns?${qs}`)])
-      .then(([metaRes, googleRes]) => {
+    fetchJSON(`/api/meta/breakdowns?start=${range.start}&end=${range.end}`)
+      .then((res) => {
         if (cancelled) return;
-        const nextErrors = { meta: null, google: null };
-
-        if (metaRes.error) {
-          nextErrors.meta = metaRes.error;
+        if (res.error) {
+          setError(res.error);
           setMeta(EMPTY_META);
         } else {
-          setMeta({ geo: metaRes.geo, demographics: metaRes.demographics });
+          setError(null);
+          setMeta({ geo: res.geo, demographics: res.demographics });
         }
-
-        // byAge/byGender are no longer requested here (removed — Google Ads'
-        // age_range_view/gender_view structurally cannot report on
-        // Performance Max campaigns, confirmed by Google's own API support
-        // team: those views are built on ad_group_criterion, and PMax
-        // campaigns don't have ad groups. Not a bug, not fixable via the
-        // API — this dashboard only handles PMax, so these would always
-        // come back empty).
-        if (googleRes.error) {
-          nextErrors.google = googleRes.error;
-          setGoogle(EMPTY_GOOGLE);
-        } else {
-          setGoogle({ byRegion: googleRes.byRegion, byCity: googleRes.byCity });
-        }
-
-        setErrors(nextErrors);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
-
     return () => {
       cancelled = true;
     };
   }, [range.start, range.end]);
 
-  const metaByAge = useMemo(() => aggregateBy(meta.demographics, 'ageRange'), [meta.demographics]);
-  const metaByGender = useMemo(() => aggregateBy(meta.demographics, 'gender'), [meta.demographics]);
+  const byAge = useMemo(() => aggregateBy(meta.demographics, 'ageRange'), [meta.demographics]);
+  const byGender = useMemo(() => aggregateBy(meta.demographics, 'gender'), [meta.demographics]);
 
   return (
     <div className={loading ? 'opacity-50 transition-opacity' : 'transition-opacity'}>
-      <ErrorBanner errors={errors} />
-
+      {error && <ErrorBanner errors={{ meta: error }} />}
       <SectionHeader eyebrow="Meta Ads" title="Desglose de audiencia y ubicación" />
       <div className="grid gap-4 sm:grid-cols-2">
         <BreakdownCard
           data={meta.geo}
           title="Gasto por estado"
           note="Solo inversión — Meta no expone ciudad, y compras/ROAS no tienen datos en este desglose"
-          error={errors.meta}
-          statKeys={['spend']}
+          error={error}
           showMetricToggle={false}
         />
-        <BreakdownCard data={metaByAge} title="Gasto por edad" error={errors.meta} />
-        <BreakdownCard data={metaByGender} title="Gasto por género" error={errors.meta} />
+        <BreakdownCard data={byAge} title="Gasto por edad" error={error} />
+        <BreakdownCard data={byGender} title="Gasto por género" error={error} />
       </div>
+    </div>
+  );
+}
 
-      <SectionHeader eyebrow="Google Ads" title="Desglose por ubicación" note="Sin edad/género — Performance Max no lo soporta (ver nota abajo)" />
+const EMPTY_GOOGLE = { byRegion: [], byCity: [] };
+
+// Fetches ONLY Google's breakdown data — placed right before Google's
+// funnel. Age/género removed entirely (see route.js comment): Performance
+// Max campaigns structurally can't report on those in Google Ads.
+export function GoogleLocationBreakdown({ range }) {
+  const [google, setGoogle] = useState(EMPTY_GOOGLE);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    fetchJSON(`/api/google/breakdowns?start=${range.start}&end=${range.end}`)
+      .then((res) => {
+        if (cancelled) return;
+        if (res.error) {
+          setError(res.error);
+          setGoogle(EMPTY_GOOGLE);
+        } else {
+          setError(null);
+          setGoogle({ byRegion: res.byRegion, byCity: res.byCity });
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [range.start, range.end]);
+
+  return (
+    <div className={loading ? 'opacity-50 transition-opacity' : 'transition-opacity'}>
+      {error && <ErrorBanner errors={{ google: error }} />}
+      <SectionHeader
+        eyebrow="Google Ads"
+        title="Desglose por ubicación"
+        note="Sin edad/género — Performance Max no lo soporta"
+      />
       <div className="grid gap-4 sm:grid-cols-2">
-        <BreakdownCard data={google.byRegion} title="Gasto por estado" error={errors.google} />
-        <BreakdownCard data={google.byCity} title="Gasto por ciudad" error={errors.google} />
+        <BreakdownCard data={google.byRegion} title="Gasto por estado" error={error} />
+        <BreakdownCard data={google.byCity} title="Gasto por ciudad" error={error} />
       </div>
       <p className="mt-2 font-body text-[10px] text-ink/40">
         Google Ads no puede reportar gasto por edad/género en campañas Performance Max — sus reportes de
         edad y género dependen de "grupos de anuncios", y PMax no usa esa estructura (usa "grupos de
-        activos" en su lugar). Confirmado por el equipo de soporte de la API de Google Ads — no es una
-        limitación de este dashboard.
+        activos" en su lugar). Confirmado por el equipo de soporte de la API de Google Ads.
       </p>
     </div>
   );
