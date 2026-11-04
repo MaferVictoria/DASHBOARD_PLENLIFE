@@ -1,23 +1,20 @@
 import { NextResponse } from 'next/server';
-import { getMetaTopCreatives } from '@/lib/connectors/meta';
+import { getMetaCreativesPage } from '@/lib/connectors/meta';
 
 export async function GET(request) {
-  const { searchParams } = new URL(request.url);
-  const start = searchParams.get('start');
-  const end = searchParams.get('end');
-
-  if (!start || !end) {
-    return NextResponse.json({ error: 'Missing start/end query params' }, { status: 400 });
+  const params = new URL(request.url).searchParams;
+  const start = params.get('start');
+  const end = params.get('end');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(start || '') || !/^\d{4}-\d{2}-\d{2}$/.test(end || '') || start > end) {
+    return NextResponse.json({ error: 'Selecciona un rango de fechas válido.' }, { status: 400 });
   }
-
   try {
-    const creatives = await getMetaTopCreatives(start, end, 5);
-    return NextResponse.json({ range: { start, end }, creatives });
-  } catch (err) {
-    console.error('[api/meta/creatives] error:', err);
-    return NextResponse.json(
-      { error: err.message || 'No se pudo obtener el ranking de creativos de Meta.' },
-      { status: 502 }
-    );
+    const result = await getMetaCreativesPage(start, end, {
+      page: params.get('page'), audience: params.get('audience') || 'all', sort: params.get('sort') || 'roas',
+      direction: params.get('direction') || 'desc', query: (params.get('q') || '').slice(0, 100),
+    });
+    return NextResponse.json({ range: { start, end }, ...result });
+  } catch {
+    return NextResponse.json({ error: 'No se pudo cargar el listado completo de Meta. Revisa la conexión y vuelve a intentarlo.' }, { status: 502 });
   }
 }
