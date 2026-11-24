@@ -45,11 +45,22 @@ function mergeExecutiveMonthly(metaMonthly, googleMonthly, shopifyMonthly) {
     const metaSpend = m ? m.spend : null;
     const googleSpend = g ? g.spend : null;
     const spend = metaSpend === null || googleSpend === null ? null : (metaSpend ?? 0) + (googleSpend ?? 0);
+    const salesShopify = s ? s.sales : null;
+    // ROAS blended mensual: se calcula con computeBlended() — la MISMA función
+    // que usa la tarjeta "ROAS blended" (ventas netas de Shopify ÷ gasto
+    // total Meta + Google) — para que la línea y la tarjeta nunca difieran.
+    // Si falta el gasto o las ventas de ese mes queda null (hueco en la
+    // línea), no 0: un 0.00x se leería como "no vendimos nada".
+    const roasBlended =
+      spend === null || salesShopify === null || salesShopify === undefined
+        ? null
+        : computeBlended({ spend: metaSpend }, { spend: googleSpend }, { netSales: salesShopify }).blendedRoas;
     return {
       month,
       spend,
-      salesShopify: s ? s.sales : null,
+      salesShopify,
       orders: s ? s.orders : null,
+      roasBlended,
     };
   });
 }
@@ -213,12 +224,15 @@ export default function ResumenEjecutivoShell() {
         <SectionHeader eyebrow="Tendencia" title="Desglose mensual (Ene → hoy)" />
         <MultiMetricMonthlyChart
           data={mergeExecutiveMonthly(metaMonthly, googleMonthly, shopifyMonthly)}
-          label="Gasto total (Meta + Google) vs. ventas netas (Shopify) — pedidos"
+          label="Gasto total (Meta + Google) vs. ventas netas (Shopify) — pedidos y ROAS blended"
           bars={[
             { dataKey: 'spend', label: 'Gasto total', color: '#086eb6', format: 'currency' },
             { dataKey: 'salesShopify', label: 'Ventas netas (Shopify)', color: '#0B2A45', format: 'currency' },
           ]}
-          lines={[{ dataKey: 'orders', label: 'Pedidos', color: '#E8A33D', format: 'number' }]}
+          lines={[
+            { dataKey: 'orders', label: 'Pedidos', color: '#E8A33D', format: 'number' },
+            { dataKey: 'roasBlended', label: 'ROAS blended', color: '#8B5CF6', format: 'ratio' },
+          ]}
         />
 
         <SectionHeader eyebrow="Cruce de plataformas" title="Plataformas vs. Shopify" note="Comparación, no atribución" />
